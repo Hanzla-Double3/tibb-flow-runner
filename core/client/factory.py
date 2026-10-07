@@ -16,6 +16,10 @@ def resolve_spec_files(workspace_id: Optional[str] = None) -> list[str]:
     """Resolves OpenAPI specs belonging strictly to the specified workspace."""
     if SPEC_FILES_OVERRIDE is not None:
         return SPEC_FILES_OVERRIDE
+    # A clean checkout only tracks the workspace root.  Ensure the generated
+    # default workspace/spec exists even when callers explicitly request it
+    # (rather than reaching it via get_active_workspace_id()).
+    workspace_store.ensure_default_workspace()
     files = []
     ws_id = workspace_id or workspace_store.get_active_workspace_id()
 
