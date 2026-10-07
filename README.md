@@ -3,7 +3,7 @@
 An OpenAPI-driven API flow runner for building, validating, and executing backend QA scenarios. It includes a visual dashboard, a Python flow SDK, an MCP server for AI-assisted flow authoring, and a workspace runner that executes every flow sequentially with live status updates.
 
 <p align="center">
-  <img src="assets/dashboard-overview.png" alt="Tibb Flow Runner dashboard overview" width="100%">
+  <img src="assets/dashboard.png" alt="Tibb Flow Runner dashboard with its workspace, API catalog, flow canvas, and runner controls" width="100%">
 </p>
 
 ## What it does
@@ -15,14 +15,6 @@ An OpenAPI-driven API flow runner for building, validating, and executing backen
 - Handles retries, backoff, `wait`, and `wait_until` for asynchronous systems.
 - Runs all workspace flows in sequence and reports which flow is running, passed, or failed.
 - Exposes workspace and flow operations through an MCP server for compatible AI tools.
-
-## Live workspace runs
-
-Run an entire workspace in order and follow each flow as it passes, fails, or waits. The illustrative screen below uses generic sample flow names and contains no local workspace data.
-
-<p align="center">
-  <img src="assets/sequential-runner.png" alt="Sequential workspace runner with live passed, running, and queued statuses" width="100%">
-</p>
 
 ## Quick start
 
