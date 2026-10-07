@@ -2,6 +2,10 @@
 
 An OpenAPI-driven API flow runner for building, validating, and executing backend QA scenarios. It includes a visual dashboard, a Python flow SDK, an MCP server for AI-assisted flow authoring, and a workspace runner that executes every flow sequentially with live status updates.
 
+<p align="center">
+  <img src="assets/dashboard-overview.png" alt="Tibb Flow Runner dashboard overview" width="100%">
+</p>
+
 ## What it does
 
 - Builds API clients from an OpenAPI specification at runtime.
@@ -12,6 +16,14 @@ An OpenAPI-driven API flow runner for building, validating, and executing backen
 - Runs all workspace flows in sequence and reports which flow is running, passed, or failed.
 - Exposes workspace and flow operations through an MCP server for compatible AI tools.
 
+## Live workspace runs
+
+Run an entire workspace in order and follow each flow as it passes, fails, or waits. The illustrative screen below uses generic sample flow names and contains no local workspace data.
+
+<p align="center">
+  <img src="assets/sequential-runner.png" alt="Sequential workspace runner with live passed, running, and queued statuses" width="100%">
+</p>
+
 ## Quick start
 
 Requirements: Python 3.11 or later.
@@ -20,7 +32,7 @@ Requirements: Python 3.11 or later.
 git clone <your-repository-url>
 cd tibb-flow-runner
 python -m venv .venv
-.venv/bin/pip install -e ".[stub]"
+.venv/bin/pip install -e ".[stub,dev]"
 cp .env.example .env
 ```
 

@@ -8,7 +8,7 @@ Use Python 3.11 or newer and install the project in an isolated environment:
 
 ```bash
 python -m venv .venv
-.venv/bin/pip install -e ".[stub]"
+.venv/bin/pip install -e ".[stub,dev]"
 cp .env.example .env
 ```
 

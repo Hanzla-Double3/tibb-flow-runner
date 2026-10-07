@@ -12,6 +12,7 @@ dependencies = [
 
 [project.optional-dependencies]
 stub = ["flask>=3.0"]
+dev = ["pytest>=8.0"]
 
 [tool.setuptools.packages.find]
 include = ["core*", "config*", "flows*", "runner*", "stub_api*", "ui_server*"]
@@ -19,4 +20,3 @@ include = ["core*", "config*", "flows*", "runner*", "stub_api*", "ui_server*"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
-
