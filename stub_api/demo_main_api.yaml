@@ -1,0 +1,49 @@
+openapi: 3.0.0
+info:
+  title: Main API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: {type: string}
+                password: {type: string}
+      responses:
+        "201":
+          description: Logged in
+
+  /orders:
+    post:
+      operationId: create_order
+      tags: [orders]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items: {type: string}
+      responses:
+        "200":
+          description: Order created
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer

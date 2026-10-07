@@ -1,0 +1,25 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.env
+.env.*
+!.env.example
+
+# Test and tool output
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.log
+.DS_Store
+
+# Workspaces contain mutable specifications, run data, and optional secrets.
+# A fresh default workspace is created automatically from the tracked examples.
+data/workspaces/*
+!data/workspaces/.gitkeep
+
+# Local, product-specific flow suites are intentionally not distributed.
+flows/dashboard/
+FLOW_CATALOG.md

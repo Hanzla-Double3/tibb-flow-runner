@@ -1,0 +1,3531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>tibb-tester dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <button id="sidebar-toggle" class="panel-toggle" title="Collapse">&laquo;</button>
+    <div class="panel-body">
+      <div class="workspace-box">
+        <div class="workspace-box-head">
+          <span>📁 Workspace</span>
+          <span id="workspace-status-indicator" style="font-size: 9px; color: var(--pass);">● active</span>
+        </div>
+        <div class="workspace-select-row">
+          <select id="active-workspace-select" title="Switch Workspace"></select>
+          <button id="ws-config-btn" title="Workspace Settings (Base URL, Secrets, Data, Spec)">⚙</button>
+          <button id="ws-new-btn" title="Create New Workspace">+</button>
+        </div>
+        <div class="workspace-meta-tag">
+          <span class="workspace-url-pill" id="workspace-base-url-pill">http://localhost:8000</span>
+        </div>
+      </div>
+
+      <h2>Flows</h2>
+      <div id="flow-list"></div>
+      <button id="new-flow-btn">+ New flow</button>
+
+      <div class="sidebar-section-header" style="margin-top: 22px; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin: 0;">APIs & Tools</h2>
+        <span class="badge" id="api-count-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 10px; padding: 2px 6px; border-radius: 999px;">0 APIs</span>
+      </div>
+      <div class="api-search-container" style="margin: 8px 0 6px 0;">
+        <input id="api-search-input" type="text" placeholder="🔍 Filter APIs..." style="width: 100%; box-sizing: border-box; font-size: 11px; padding: 5px 8px; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text);" />
+      </div>
+      <div id="api-list" class="api-list-container"></div>
+      <div class="api-actions-row" style="display: flex; gap: 6px; margin-top: 8px;">
+        <button id="add-manual-tool-btn" style="flex: 1;" title="Add a custom API endpoint to this workspace">+ Add API</button>
+        <button id="import-spec-btn" style="flex: 1;" title="Import OpenAPI JSON/YAML to this workspace">Import Spec</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="topbar">
+      <div class="mode-switch-group">
+        <button type="button" class="mode-btn" id="mode-btn-edit" title="Edit flow blueprint and steps">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Edit
+        </button>
+        <button type="button" class="mode-btn" id="mode-btn-view" title="Viewing and runner mode (clean, no edit clutter)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+          Runner
+        </button>
+      </div>
+      <div class="flow-title-container">
+        <input id="flow-name" type="text" placeholder="flow_name" title="Flow Name" />
+        <div id="flow-title-view" class="flow-title-badge" title="Click to edit flow">untitled_flow</div>
+      </div>
+      <div class="topbar-actions">
+        <button id="save-btn" class="btn-edit-only">Save</button>
+        <div class="cleanup-group btn-edit-only">
+          <button id="clean-btn" title="Align and tidy flow nodes cleanly without overlaps">✨ Clean up</button>
+          <select id="clean-layout-mode" title="Layout style">
+            <option value="vertical">⬇ Vertical</option>
+            <option value="horizontal">➡ Horizontal</option>
+            <option value="grid">⊞ Grid</option>
+          </select>
+        </div>
+        <button id="run-btn" class="primary">&#9654; Run Flow</button>
+        <button id="run-workspace-btn" title="Run every saved flow in this workspace sequentially">&#9654;&#9654; Run All Flows</button>
+        <button id="edit-run-btn" class="btn-edit-run" title="Edit seed parameters and base URL before running">&#9881; Edit &amp; Run</button>
+        <button id="delete-btn" class="danger btn-edit-only">Delete</button>
+      </div>
+      <span id="run-status"></span>
+      <span id="workspace-run-progress" class="log-dim" style="font-size: 11px;"></span>
+    </div>
+    <div id="data-panel">
+      <div class="data-panel-head" id="data-panel-head">
+        <h3>ctx.data (seed values, referenced as $data.&lt;key&gt;)</h3>
+        <span id="data-toggle-arrow">&#9650;</span>
+      </div>
+      <div id="data-body">
+        <div id="data-rows"></div>
+        <button id="add-data-row">+ value</button>
+      </div>
+    </div>
+    <div id="canvas">
+      <div id="canvas-inner">
+        <svg id="edge-layer"></svg>
+      </div>
+    </div>
+    <div id="footer-bar">
+      <div class="add-row">
+        <select id="add-step-tool"></select>
+        <button id="add-step-btn">+ Add step</button>
+        <button id="add-condition-btn">+ Add condition</button>
+        <button id="add-split-btn" class="btn-split">+ Add split</button>
+        <select id="add-flow-select" style="margin-left: 10px;"></select>
+        <button id="add-flow-btn" class="btn-flow">+ Add flow</button>
+        <span class="log-dim">drag any card's header to move it &middot; drag empty canvas to pan</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="log-panel">
+    <button id="log-toggle" class="panel-toggle" title="Collapse">&raquo;</button>
+    <div class="panel-body">
+      <div class="tab-row">
+        <button class="tab-btn active" id="tab-log-btn">Run log</button>
+        <button class="tab-btn" id="tab-assistant-btn">Assistant</button>
+      </div>
+      <div id="tab-log" class="tab-page">
+        <div id="log"></div>
+      </div>
+      <div id="tab-assistant" class="tab-page" hidden>
+        <div id="chat-log"></div>
+        <div id="chat-input-row">
+          <input id="chat-input" type="text" placeholder="e.g. build a flow that logs in and creates an order" />
+          <button id="chat-send-btn" class="primary">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-overlay" hidden>
+  <div id="import-spec-modal" class="modal" hidden>
+    <h3 class="subhead">Import OpenAPI spec</h3>
+    <div class="field-row"><label>title</label><input id="spec-title-input" type="text" placeholder="e.g. Main API" /></div>
+    <div class="field-row"><label>upload file</label><input id="spec-file-input" type="file" accept=".json,.yaml,.yml" /></div>
+    <textarea id="spec-content-input" placeholder="...or paste OpenAPI JSON/YAML content here"></textarea>
+    <div class="modal-actions">
+      <button id="spec-cancel-btn">Cancel</button>
+      <button id="spec-import-btn" class="primary">Import</button>
+    </div>
+  </div>
+
+  <div id="manual-tool-modal" class="modal" hidden>
+    <h3 class="subhead">Add manual tool</h3>
+    <div class="field-row"><label>operation id</label><input id="manual-op-id" type="text" placeholder="e.g. get_order_by_id" /></div>
+    <div class="field-row"><label>tag</label><input id="manual-tag" type="text" placeholder="e.g. tester_db" /></div>
+    <div class="field-row"><label>method</label>
+      <select id="manual-method"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select>
+    </div>
+    <div class="field-row"><label>path</label><input id="manual-path" type="text" placeholder="e.g. /tester/orders/{order_id}" /></div>
+    <div class="field-row"><label>query params</label><input id="manual-query" type="text" placeholder="comma-separated, e.g. limit,offset" /></div>
+    <div class="field-row"><label>body fields</label><input id="manual-body" type="text" placeholder="comma-separated, e.g. username,file" /></div>
+    <div class="field-row"><label>body type</label>
+      <select id="manual-content-type">
+        <option value="application/json">JSON (application/json)</option>
+        <option value="multipart/form-data">Multipart Form / Files (multipart/form-data)</option>
+        <option value="application/x-www-form-urlencoded">Form URL-encoded</option>
+      </select>
+    </div>
+    <div class="field-row"><label>requires auth</label><input id="manual-auth" type="checkbox" /></div>
+    <div class="modal-actions">
+      <button id="manual-cancel-btn">Cancel</button>
+      <button id="manual-add-btn" class="primary">Add</button>
+    </div>
+  </div>
+
+  <div id="workspace-settings-modal" class="modal modal-lg" hidden>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 class="subhead" style="margin: 0;" id="ws-settings-modal-title">Workspace Settings</h3>
+      <button class="close-modal-btn" onclick="closeModals()">&times;</button>
+    </div>
+
+    <div class="field-row"><label>Workspace ID</label><input id="ws-settings-id" type="text" disabled style="opacity: 0.6;" /></div>
+    <div class="field-row"><label>Display Name</label><input id="ws-settings-name" type="text" placeholder="e.g. Staging Environment" /></div>
+    <div class="field-row"><label>Base URL</label><input id="ws-settings-base-url" type="text" placeholder="http://localhost:8000" /></div>
+
+    <div class="form-sec-title">OpenAPI Spec (openapi.json)</div>
+    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+      <span id="ws-spec-status-text" style="font-size: 11px; color: var(--dim); flex: 1;"></span>
+      <input type="file" id="ws-spec-file-input" accept=".json,.yaml,.yml" style="display: none;" />
+      <button type="button" id="ws-pick-spec-btn">Upload openapi.json</button>
+    </div>
+
+    <div class="form-sec-title">Workspace Key-Values (shared across flows via $data.&lt;key&gt; / $workspace.&lt;key&gt;)</div>
+    <div id="ws-data-rows"></div>
+    <button type="button" id="ws-add-data-kv-btn" style="margin-top: 4px; padding: 2px 8px; font-size: 11px;">+ Add Data Key</button>
+
+    <div class="form-sec-title">Workspace Secrets (credentials via $secret.&lt;key&gt;)</div>
+    <div id="ws-secrets-rows"></div>
+    <button type="button" id="ws-add-secret-kv-btn" style="margin-top: 4px; padding: 2px 8px; font-size: 11px;">+ Add Secret</button>
+
+    <div class="modal-actions" style="margin-top: 18px;">
+      <button id="ws-delete-workspace-btn" class="danger" style="margin-right: auto;">Delete Workspace</button>
+      <button onclick="closeModals()">Cancel</button>
+      <button id="ws-save-settings-btn" class="primary">Save Changes</button>
+    </div>
+  </div>
+
+  <div id="new-workspace-modal" class="modal" hidden>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 class="subhead" style="margin: 0;">New Workspace</h3>
+      <button class="close-modal-btn" onclick="closeModals()">&times;</button>
+    </div>
+    <div class="field-row"><label>ID (slug)</label><input id="new-ws-id-input" type="text" placeholder="e.g. staging, auth_team" /></div>
+    <div class="field-row"><label>Name</label><input id="new-ws-name-input" type="text" placeholder="e.g. Staging Environment" /></div>
+    <div class="field-row"><label>Base URL</label><input id="new-ws-url-input" type="text" placeholder="http://localhost:8000" value="http://localhost:8000" /></div>
+    <div class="modal-actions" style="margin-top: 18px;">
+      <button onclick="closeModals()">Cancel</button>
+      <button id="new-ws-submit-btn" class="primary">Create Workspace</button>
+    </div>
+  </div>
+
+  <div id="response-modal" class="modal response-modal" hidden>
+    <div class="resp-modal-header">
+      <div class="resp-title-box">
+        <span id="resp-modal-method" class="resp-badge-method">POST</span>
+        <span id="resp-modal-title" class="resp-title-text">Response</span>
+        <span id="resp-modal-status" class="resp-badge-status">200 OK</span>
+      </div>
+      <button class="close-modal-btn" onclick="closeModals()">&times;</button>
+    </div>
+    <div id="resp-modal-url" class="resp-url-bar"></div>
+    <div class="resp-tab-bar">
+      <button class="resp-tab-btn active" id="resp-tab-body-btn" onclick="switchRespTab('body')">Body</button>
+      <button class="resp-tab-btn" id="resp-tab-headers-btn" onclick="switchRespTab('headers')">Headers</button>
+      <button class="resp-tab-btn" id="resp-tab-raw-btn" onclick="switchRespTab('raw')">Raw Text</button>
+      <span class="spacer"></span>
+      <button id="resp-copy-btn" class="secondary-btn" onclick="copyRespContent()">Copy JSON</button>
+    </div>
+    <div id="resp-page-body" class="resp-page">
+      <pre id="resp-body-text" class="resp-pre"></pre>
+    </div>
+    <div id="resp-page-headers" class="resp-page" hidden>
+      <pre id="resp-headers-text" class="resp-pre"></pre>
+    </div>
+    <div id="resp-page-raw" class="resp-page" hidden>
+      <pre id="resp-raw-text" class="resp-pre"></pre>
+    </div>
+    <div class="modal-actions" style="margin-top: 14px;">
+      <button onclick="closeModals()">Close</button>
+    </div>
+  </div>
+
+  <div id="edit-run-flow-modal" class="modal modal-lg" hidden>
+    <div class="resp-modal-header">
+      <div class="resp-title-box">
+        <span class="resp-badge-method" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">&#9881; FLOW</span>
+        <span class="resp-title-text" id="edit-run-flow-title">Edit &amp; Run Flow</span>
+      </div>
+      <button class="close-modal-btn" onclick="closeModals()">&times;</button>
+    </div>
+    <div style="font-size: 11px; color: var(--dim); margin-bottom: 12px;">
+      Run this flow with temporary seed parameters or target a different Base URL without modifying the blueprint.
+    </div>
+
+    <div class="form-sec-title">Target Base URL</div>
+    <div class="field-row" style="margin-bottom: 10px;">
+      <label style="width: 110px;">Base URL</label>
+      <input type="text" id="edit-run-flow-base-url" placeholder="http://localhost:8000" style="flex: 1;" />
+    </div>
+
+    <div class="form-sec-title">Seed Parameters ($data.&lt;key&gt;)</div>
+    <div id="edit-run-flow-params-container" style="max-height: 220px; overflow-y: auto; margin-bottom: 8px;"></div>
+    <button type="button" class="secondary-btn" id="edit-run-flow-add-param" style="font-size: 11px; padding: 4px 8px;">+ Add Parameter</button>
+
+    <div style="margin-top: 14px; display: flex; align-items: center; gap: 8px;">
+      <input type="checkbox" id="edit-run-flow-persist" />
+      <label for="edit-run-flow-persist" style="font-size: 12px; color: var(--dim); cursor: pointer;">
+        Persist updated parameters to flow blueprint
+      </label>
+    </div>
+
+    <div class="modal-actions" style="margin-top: 16px;">
+      <button onclick="closeModals()">Cancel</button>
+      <button id="edit-run-flow-submit-btn" class="primary" style="background: #fbbf24; color: #06121f; font-weight: 700;">&#9654; Run Flow</button>
+    </div>
+  </div>
+
+  <div id="edit-run-node-modal" class="modal modal-lg" hidden>
+    <div class="resp-modal-header">
+      <div class="resp-title-box">
+        <span id="edit-run-node-method" class="resp-badge-method">POST</span>
+        <span id="edit-run-node-title" class="resp-title-text">Edit &amp; Run Step</span>
+        <span id="edit-run-node-step-id" class="resp-badge-status" style="background: rgba(255,255,255,0.08); color: var(--dim); border: 1px solid var(--line);">step_1</span>
+      </div>
+      <button class="close-modal-btn" onclick="closeModals()">&times;</button>
+    </div>
+    <div id="edit-run-node-path" class="resp-url-bar" style="margin-bottom: 10px;"></div>
+
+    <div class="resp-tab-bar" style="margin-bottom: 12px;">
+      <button class="resp-tab-btn active" id="edit-run-node-tab-form" onclick="switchEditRunNodeTab('form')">Form Fields</button>
+      <button class="resp-tab-btn" id="edit-run-node-tab-json" onclick="switchEditRunNodeTab('json')">Raw JSON Payload</button>
+    </div>
+
+    <div id="edit-run-node-page-form" class="edit-run-page" style="max-height: 280px; overflow-y: auto; padding-right: 4px;">
+      <div id="edit-run-node-form-fields"></div>
+    </div>
+
+    <div id="edit-run-node-page-json" class="edit-run-page" hidden>
+      <div style="font-size: 11px; color: var(--dim); margin-bottom: 4px;">Directly edit the JSON payload / args passed to this endpoint:</div>
+      <textarea id="edit-run-node-json-text" style="width: 100%; min-height: 220px; font-family: monospace; font-size: 12px;"></textarea>
+    </div>
+
+    <div style="margin-top: 14px; display: flex; align-items: center; gap: 8px;">
+      <input type="checkbox" id="edit-run-node-persist" />
+      <label for="edit-run-node-persist" style="font-size: 12px; color: var(--dim); cursor: pointer;">
+        Save customized arguments back to step card
+      </label>
+    </div>
+
+    <div class="modal-actions" style="margin-top: 16px;">
+      <button onclick="closeModals()">Cancel</button>
+      <button id="edit-run-node-submit-btn" class="primary" style="background: #fbbf24; color: #06121f; font-weight: 700;">&#9654; Execute Step</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+let currentMode = localStorage.getItem("tibb_ui_mode") || "edit";
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  try { localStorage.setItem("tibb_ui_mode", mode); } catch (e) {}
+  const editBtn = document.getElementById("mode-btn-edit");
+  const viewBtn = document.getElementById("mode-btn-view");
+  if (editBtn) editBtn.classList.toggle("active", mode === "edit");
+  if (viewBtn) viewBtn.classList.toggle("active", mode === "view");
+  const app = document.getElementById("app");
+  if (app) {
+    app.classList.toggle("mode-edit", mode === "edit");
+    app.classList.toggle("mode-view", mode === "view");
+  }
+  const flowTitleView = document.getElementById("flow-title-view");
+  if (flowTitleView) flowTitleView.textContent = state ? state.name : "untitled_flow";
+  render();
+}
+
+
+let tools = [];               // flat list from /api/tools
+let toolsByName = {};
+let state = { name: "untitled_flow", data: {}, steps: [] };
+let stepStatus = {};          // id -> 'pass' | 'fail'
+let stepResponses = {};       // id -> response dict {status_code, headers, body, text, url, method}
+let activeResponseData = null;
+let currentFlowList = [];
+let ws = null;
+
+function newId() { return "n" + Math.random().toString(36).slice(2, 10); }
+
+function newCallNode(toolName, pos) {
+  return { id: newId(), kind: "call", tool: toolName, bind_as: "", args: {}, validate: [], pos: pos || { x: 80, y: 80 } };
+}
+function newCheckNode(checkType, pos) {
+  const node = { id: newId(), kind: "check", check_type: checkType, pos: pos || { x: 80, y: 80 } };
+  if (checkType === "status") node.status = 200;
+  if (checkType === "json") { node.path = ""; node.not_none = true; }
+  return node;
+}
+function newConditionNode(pos) {
+  return {
+    id: newId(),
+    kind: "condition",
+    left: "$ctx.",
+    op: "==",
+    right: "",
+    then_steps: [],
+    else_steps: [],
+    pos: pos || { x: 80, y: 80 }
+  };
+}
+function newFlowStepNode(flowName, pos) {
+  return {
+    id: newId(),
+    kind: "flow",
+    flow_name: flowName || (currentFlowList.find(n => n !== (state ? state.name : "")) || ""),
+    bind_as: "",
+    pos: pos || { x: 80, y: 80 }
+  };
+}
+function newSplitNode(pos) {
+  return {
+    id: newId(),
+    kind: "split",
+    name: "Split Paths",
+    mode: "parallel",
+    branches: [
+      { id: newId(), name: "Branch 1", steps: [] },
+      { id: newId(), name: "Branch 2", steps: [] }
+    ],
+    pos: pos || { x: 80, y: 80 }
+  };
+}
+
+function populateFlowOptions(select, selectedValue, currentFlowName) {
+  if (!select) return;
+  select.innerHTML = "";
+  let matched = false;
+  for (const name of currentFlowList) {
+    if (currentFlowName && name === currentFlowName) continue;
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    if (name === selectedValue) {
+      opt.selected = true;
+      matched = true;
+    }
+    select.appendChild(opt);
+  }
+  if (!matched && select.options.length > 0 && selectedValue) {
+    select.selectedIndex = 0;
+  }
+}
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  if (!res.ok) throw new Error(`${path} -> ${res.status}: ${await res.text()}`);
+  const ct = res.headers.get("content-type") || "";
+  return ct.includes("application/json") ? res.json() : res.text();
+}
+
+function parseLooseJSON(raw) {
+  try { return JSON.parse(raw); } catch (e) { return raw; }
+}
+function valueToInputString(v) {
+  return typeof v === "string" ? v : JSON.stringify(v);
+}
+function coerceArgValue(raw, type) {
+  if (raw === "") return undefined;
+  if (raw.startsWith("$")) return raw;
+  if (type === "integer") { const n = parseInt(raw, 10); return Number.isNaN(n) ? raw : n; }
+  if (type === "number") { const n = parseFloat(raw); return Number.isNaN(n) ? raw : n; }
+  if (type === "boolean") return raw === "true";
+  if (type === "array" || type === "object") return parseLooseJSON(raw);
+  return raw;
+}
+
+// ---------------------------------------------------------------------
+// Data loading
+// ---------------------------------------------------------------------
+
+async function loadTools() {
+  const wsId = activeWorkspace ? activeWorkspace.id : null;
+  const url = wsId ? `/api/workspaces/${encodeURIComponent(wsId)}/tools` : "/api/tools";
+  try {
+    tools = await api(url);
+  } catch (err) {
+    tools = [];
+  }
+  toolsByName = Object.fromEntries(tools.map(t => [t.name, t]));
+  const addStepTool = document.getElementById("add-step-tool");
+  if (addStepTool) buildToolOptions(addStepTool);
+  refreshApiList();
+}
+
+function getCleanToolName(t) {
+  if (!t) return "";
+  const raw = t.name.includes("__") ? t.name.split("__")[1] : t.name;
+  if (!t.path) return raw;
+  const sanitizedPath = t.path.replace(/[^a-zA-Z0-9]/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
+  const method = (t.method || "").toLowerCase();
+  const suffix = `_${sanitizedPath}_${method}`;
+  if (raw.toLowerCase().endsWith(suffix)) {
+    const clean = raw.slice(0, -suffix.length);
+    if (clean) return clean;
+  }
+  if (raw.toLowerCase().endsWith(`_${sanitizedPath}`)) {
+    const clean = raw.slice(0, -`_${sanitizedPath}`.length);
+    if (clean) return clean;
+  }
+  const apiMatch = raw.match(/^(.*?)_api_v\d+.*$/i);
+  if (apiMatch && apiMatch[1]) {
+    return apiMatch[1];
+  }
+  return raw;
+}
+
+function buildToolOptions(select, mode = "compact") {
+  select.innerHTML = "";
+  const byTag = {};
+  for (const t of tools) (byTag[t.tag] ||= []).push(t);
+  for (const tag of Object.keys(byTag).sort()) {
+    const group = document.createElement("optgroup");
+    group.label = tag;
+    for (const t of byTag[tag]) {
+      const opt = document.createElement("option");
+      opt.value = t.name;
+      const cleanName = getCleanToolName(t);
+      if (mode === "full") {
+        opt.textContent = `${cleanName}  (${t.method} ${t.path})`;
+      } else {
+        opt.textContent = `${cleanName}  (${t.method})`;
+      }
+      opt.title = `${t.method} ${t.path} (${t.name})`;
+      group.appendChild(opt);
+    }
+    select.appendChild(group);
+  }
+}
+
+async function refreshFlowList() {
+  currentFlowList = await api("/api/flows");
+  const list = document.getElementById("flow-list");
+  list.innerHTML = "";
+  for (const name of currentFlowList) {
+    const el = document.createElement("div");
+    el.className = "flow-item" + (name === state.name ? " active" : "");
+    el.textContent = name;
+    el.onclick = () => loadFlow(name);
+    list.appendChild(el);
+  }
+  const addFlowSelect = document.getElementById("add-flow-select");
+  if (addFlowSelect) {
+    populateFlowOptions(addFlowSelect, addFlowSelect.value, state ? state.name : null);
+  }
+}
+
+function refreshApiList() {
+  const container = document.getElementById("api-list");
+  if (!container) return;
+  const filterInput = document.getElementById("api-search-input");
+  const query = filterInput ? filterInput.value.trim().toLowerCase() : "";
+  const countBadge = document.getElementById("api-count-badge");
+
+  const filtered = tools.filter(t => {
+    if (!query) return true;
+    const name = (t.name || "").toLowerCase();
+    const path = (t.path || "").toLowerCase();
+    const tag = (t.tag || "").toLowerCase();
+    const method = (t.method || "").toLowerCase();
+    const summary = (t.summary || "").toLowerCase();
+    return name.includes(query) || path.includes(query) || tag.includes(query) || method.includes(query) || summary.includes(query);
+  });
+
+  if (countBadge) {
+    countBadge.textContent = `${filtered.length} API${filtered.length === 1 ? '' : 's'}`;
+  }
+
+  container.innerHTML = "";
+  if (filtered.length === 0) {
+    const empty = document.createElement("div");
+    empty.style.cssText = "padding: 12px 6px; text-align: center; color: var(--dim); font-size: 11px;";
+    empty.textContent = query ? "No matching APIs found" : "No APIs in this workspace";
+    container.appendChild(empty);
+    return;
+  }
+
+  const byTag = {};
+  for (const t of filtered) {
+    const tag = t.tag || "other";
+    if (!byTag[tag]) byTag[tag] = [];
+    byTag[tag].push(t);
+  }
+
+  for (const [tag, tagTools] of Object.entries(byTag)) {
+    const group = document.createElement("div");
+    group.className = "api-tag-group";
+
+    const header = document.createElement("div");
+    header.className = "api-tag-header";
+    header.innerHTML = `<span>${tag}</span><span style="opacity: 0.6; font-size: 9px;">${tagTools.length}</span>`;
+    group.appendChild(header);
+
+    const itemsContainer = document.createElement("div");
+    itemsContainer.className = "api-tag-items";
+
+    for (const t of tagTools) {
+      const row = document.createElement("div");
+      row.className = "api-item";
+
+      const method = (t.method || "GET").toUpperCase();
+      const methodTag = document.createElement("span");
+      methodTag.className = `method-tag method-${method.toLowerCase()}`;
+      methodTag.textContent = method;
+
+      const info = document.createElement("div");
+      info.className = "api-item-info";
+
+      const cleanName = getCleanToolName(t) || t.operation_id || t.name;
+      const nameEl = document.createElement("span");
+      nameEl.className = "api-item-name";
+      nameEl.textContent = cleanName;
+      nameEl.title = `${t.summary || cleanName}\n${t.path || ''}`;
+
+      const pathEl = document.createElement("span");
+      pathEl.className = "api-item-path";
+      pathEl.textContent = t.path || "";
+      pathEl.title = t.path || "";
+
+      info.append(nameEl, pathEl);
+
+      const actions = document.createElement("div");
+      actions.className = "api-item-actions";
+
+      const addBtn = document.createElement("button");
+      addBtn.className = "api-action-btn";
+      addBtn.title = "Add step to canvas";
+      addBtn.textContent = "+";
+      addBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (!state || !state.steps) return;
+        const maxY = state.steps.reduce((m, s) => Math.max(m, s.pos ? s.pos.y : 0), 0);
+        state.steps.push(newCallNode(t.name, { x: 80, y: state.steps.length ? maxY + 260 : 80 }));
+        render();
+        triggerAutoSave();
+        addLog(`Added ${cleanName} step to canvas`, "log-info");
+      };
+      actions.appendChild(addBtn);
+
+      if (t.is_manual) {
+        const delBtn = document.createElement("button");
+        delBtn.className = "api-action-btn btn-delete";
+        delBtn.title = "Delete custom API";
+        delBtn.textContent = "×";
+        delBtn.onclick = async (e) => {
+          e.stopPropagation();
+          if (!confirm(`Delete custom API "${cleanName}" from this workspace?`)) return;
+          const wsId = activeWorkspace ? activeWorkspace.id : "default";
+          const opId = t.operation_id || t.name.split("__")[1] || t.name;
+          await api(`/api/workspaces/${encodeURIComponent(wsId)}/tools/manual/${encodeURIComponent(opId)}`, {
+            method: "DELETE",
+          });
+          await loadTools();
+          render();
+        };
+        actions.appendChild(delBtn);
+      }
+
+      row.append(methodTag, info, actions);
+      itemsContainer.appendChild(row);
+    }
+
+    group.appendChild(itemsContainer);
+    container.appendChild(group);
+  }
+}
+
+// ---------------------------------------------------------------------
+// Workspaces
+// ---------------------------------------------------------------------
+
+let activeWorkspace = null;
+let allWorkspaces = [];
+
+async function refreshWorkspaces() {
+  try {
+    allWorkspaces = await api("/api/workspaces");
+    activeWorkspace = await api("/api/workspaces/active");
+  } catch (err) {
+    console.error("Failed to fetch workspaces:", err);
+    return;
+  }
+
+  const select = document.getElementById("active-workspace-select");
+  if (select) {
+    select.innerHTML = "";
+    for (const ws of allWorkspaces) {
+      const opt = document.createElement("option");
+      opt.value = ws.id;
+      opt.textContent = `${ws.name} (${ws.flow_count || 0} flows)`;
+      if (activeWorkspace && ws.id === activeWorkspace.id) opt.selected = true;
+      select.appendChild(opt);
+    }
+  }
+
+  const pill = document.getElementById("workspace-base-url-pill");
+  if (pill && activeWorkspace) {
+    pill.textContent = activeWorkspace.base_url || "http://localhost:8000";
+    pill.title = `Target: ${activeWorkspace.base_url}`;
+  }
+}
+
+async function switchWorkspace(wsId) {
+  if (!wsId) return;
+  try {
+    await api("/api/workspaces/active", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workspace_id: wsId }),
+    });
+    setStatus(`Switched to workspace '${wsId}'`);
+    await refreshWorkspaces();
+    await loadTools();
+    await refreshFlowList();
+    if (currentFlowList.length > 0) {
+      await loadFlow(currentFlowList[0]);
+    } else {
+      newFlow(false);
+    }
+  } catch (err) {
+    addLog("Failed to switch workspace: " + err, "log-fail");
+  }
+}
+
+function openWorkspaceSettingsModal() {
+  if (!activeWorkspace) return;
+  document.getElementById("ws-settings-id").value = activeWorkspace.id;
+  document.getElementById("ws-settings-name").value = activeWorkspace.name;
+  document.getElementById("ws-settings-base-url").value = activeWorkspace.base_url;
+  document.getElementById("ws-spec-status-text").textContent = activeWorkspace.has_spec ? "✓ openapi.json present" : "(no openapi.json)";
+  document.getElementById("ws-delete-workspace-btn").style.display = activeWorkspace.id === "default" ? "none" : "";
+
+  renderWsKvRows("ws-data-rows", activeWorkspace.data || {}, false);
+  renderWsKvRows("ws-secrets-rows", activeWorkspace.secrets || {}, true);
+  openModal("workspace-settings-modal");
+}
+
+function renderWsKvRows(containerId, dataObj, isSecret) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  for (const key of Object.keys(dataObj)) {
+    const row = document.createElement("div");
+    row.className = "kv-row";
+    row.style.display = "flex";
+    row.style.gap = "6px";
+    row.style.marginBottom = "4px";
+
+    const keyInp = document.createElement("input");
+    keyInp.type = "text";
+    keyInp.value = key;
+    keyInp.placeholder = "key";
+    keyInp.style.flex = "1";
+
+    const valInp = document.createElement("input");
+    valInp.type = isSecret ? "password" : "text";
+    valInp.value = dataObj[key] || "";
+    valInp.placeholder = isSecret ? "secret value" : "value";
+    valInp.style.flex = "1.5";
+
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "danger";
+    delBtn.textContent = "×";
+    delBtn.onclick = () => row.remove();
+
+    row.append(keyInp, valInp, delBtn);
+    container.appendChild(row);
+  }
+}
+
+function addWsKvRow(containerId, isSecret) {
+  const container = document.getElementById(containerId);
+  const row = document.createElement("div");
+  row.className = "kv-row";
+  row.style.display = "flex";
+  row.style.gap = "6px";
+  row.style.marginBottom = "4px";
+
+  const keyInp = document.createElement("input");
+  keyInp.type = "text";
+  keyInp.placeholder = "key";
+  keyInp.style.flex = "1";
+
+  const valInp = document.createElement("input");
+  valInp.type = isSecret ? "password" : "text";
+  valInp.placeholder = isSecret ? "secret value" : "value";
+  valInp.style.flex = "1.5";
+
+  const delBtn = document.createElement("button");
+  delBtn.type = "button";
+  delBtn.className = "danger";
+  delBtn.textContent = "×";
+  delBtn.onclick = () => row.remove();
+
+  row.append(keyInp, valInp, delBtn);
+  container.appendChild(row);
+}
+
+function collectWsKvRows(containerId) {
+  const container = document.getElementById(containerId);
+  const out = {};
+  for (const row of container.querySelectorAll(".kv-row")) {
+    const inputs = row.querySelectorAll("input");
+    const k = inputs[0]?.value?.trim();
+    const v = inputs[1]?.value;
+    if (k) out[k] = v;
+  }
+  return out;
+}
+
+async function saveWorkspaceSettings() {
+  if (!activeWorkspace) return;
+  const name = document.getElementById("ws-settings-name").value.trim();
+  const baseUrl = document.getElementById("ws-settings-base-url").value.trim();
+  const data = collectWsKvRows("ws-data-rows");
+  const secrets = collectWsKvRows("ws-secrets-rows");
+
+  try {
+    await api(`/api/workspaces/${encodeURIComponent(activeWorkspace.id)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, base_url: baseUrl, data, secrets }),
+    });
+    closeModals();
+    setStatus("workspace settings saved");
+    await refreshWorkspaces();
+    await loadTools();
+  } catch (err) {
+    addLog("Failed to save workspace settings: " + err, "log-fail");
+  }
+}
+
+async function deleteActiveWorkspace() {
+  if (!activeWorkspace || activeWorkspace.id === "default") return;
+  if (!confirm(`Delete workspace "${activeWorkspace.name}" (${activeWorkspace.id}) and all its flows?`)) return;
+  try {
+    await api(`/api/workspaces/${encodeURIComponent(activeWorkspace.id)}`, { method: "DELETE" });
+    closeModals();
+    await switchWorkspace("default");
+  } catch (err) {
+    addLog("Failed to delete workspace: " + err, "log-fail");
+  }
+}
+
+function openNewWorkspaceModal() {
+  document.getElementById("new-ws-id-input").value = "";
+  document.getElementById("new-ws-name-input").value = "";
+  document.getElementById("new-ws-url-input").value = "http://localhost:8000";
+  openModal("new-workspace-modal");
+}
+
+async function submitNewWorkspace() {
+  const rawId = document.getElementById("new-ws-id-input").value.trim();
+  const name = document.getElementById("new-ws-name-input").value.trim();
+  const baseUrl = document.getElementById("new-ws-url-input").value.trim();
+  if (!rawId) {
+    addLog("Workspace ID is required", "log-fail");
+    return;
+  }
+  const id = rawId.toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
+  try {
+    await api("/api/workspaces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, name: name || id, base_url: baseUrl || "http://localhost:8000" }),
+    });
+    closeModals();
+    await switchWorkspace(id);
+  } catch (err) {
+    addLog("Failed to create workspace: " + err, "log-fail");
+  }
+}
+
+function runWorkspace(workspaceId) {
+  switchTab("log");
+  clearLog();
+  setStatus("running workspace...");
+  const progressEl = document.getElementById("workspace-run-progress");
+  if (progressEl) progressEl.textContent = "Preparing suite…";
+  addLog(`running workspace ${workspaceId}`, "log-dim");
+
+  const proto = location.protocol === "https:" ? "wss:" : "ws:";
+  const socket = new WebSocket(`${proto}//${location.host}/ws/workspaces/${encodeURIComponent(workspaceId)}/run`);
+  socket.onmessage = (evt) => {
+    const msg = JSON.parse(evt.data);
+    if (msg.type === "flow_start") {
+      if (progressEl) progressEl.textContent = `${msg.index}/${msg.total}: RUNNING ${msg.flow}`;
+      addLog(`--- [${msg.index}/${msg.total}] RUNNING: ${msg.flow} ---`, "log-dim");
+    } else if (msg.type === "flow_missing") {
+      addLog(`  flow not found: ${msg.flow}`, "log-fail");
+    } else if (msg.type === "step") {
+      logStep(msg.step, msg.step.kind === "check" ? 1 : 0);
+    } else if (msg.type === "flow_done") {
+      if (progressEl) progressEl.textContent = `${msg.index}/${msg.total}: ${msg.report.status.toUpperCase()} ${msg.flow}`;
+      addLog(`  ${msg.report.status.toUpperCase()} (${msg.report.duration_s.toFixed(3)}s)`, msg.report.status === "pass" ? "log-pass" : "log-fail");
+    } else if (msg.type === "flow_invalid") {
+      if (progressEl) progressEl.textContent = `${msg.index}/${msg.total}: INVALID ${msg.flow}`;
+      addLog(`  INVALID: ${msg.flow}`, "log-fail");
+      for (const issue of msg.issues || []) addLog(`    ${issue.message}`, "log-fail");
+    } else if (msg.type === "done") {
+      setStatus(msg.status === "pass" ? "PASS" : "FAIL");
+      const passed = msg.flows.filter(f => f.status === "pass").length;
+      if (progressEl) progressEl.textContent = `${msg.status.toUpperCase()}: ${passed}/${msg.flows.length} flows passed`;
+      addLog(`=== workspace ${msg.status.toUpperCase()}: ${passed}/${msg.flows.length} flows passed ===`, "log-dim");
+    } else if (msg.type === "error") {
+      setStatus("ERROR");
+      if (progressEl) progressEl.textContent = "ERROR";
+      addLog("error: " + msg.message, "log-fail");
+    }
+  };
+  socket.onerror = () => {
+    if (progressEl) progressEl.textContent = "CONNECTION ERROR";
+    addLog("workspace run connection error", "log-fail");
+  };
+}
+
+let autoSaveTimer = null;
+let lastDeletedFlowName = null;
+let isDirty = false;
+
+function isPersistableFlow(st) {
+  if (!st || !st.name) return false;
+  if (st.name === lastDeletedFlowName) return false;
+  if (st.name.startsWith("untitled_flow") && (!st.steps || st.steps.length === 0)) return false;
+  return true;
+}
+
+function flushAutoSave() {
+  if (!isDirty) return;
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+  }
+  isDirty = false;
+  if (!isPersistableFlow(state)) return;
+  fetch(`/api/flows/${encodeURIComponent(state.name)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ graph: state, version: state.version }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
+function triggerAutoSave() {
+  if (!state || !state.name || state.name === lastDeletedFlowName) return;
+  isDirty = true;
+  try {
+    localStorage.setItem("tibb_active_flow", state.name);
+  } catch (e) {}
+
+  if (!isPersistableFlow(state)) return;
+
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    if (isPersistableFlow(state) && isDirty) {
+      saveFlow().catch(() => {});
+    }
+  }, 500);
+}
+
+window.addEventListener("beforeunload", flushAutoSave);
+
+window.addEventListener("focus", async () => {
+  if (isDirty || !state || !state.name || state.name.startsWith("untitled_flow")) return;
+  try {
+    const remote = await api(`/api/flows/${encodeURIComponent(state.name)}`);
+    if (remote && (remote.version !== state.version || JSON.stringify(remote.steps) !== JSON.stringify(state.steps))) {
+      state = remote;
+      render();
+    }
+  } catch (e) {}
+});
+
+async function loadFlow(name) {
+  flushAutoSave();
+  isDirty = false;
+  try { localStorage.setItem("tibb_active_flow", name); } catch (e) {}
+  state = await api(`/api/flows/${encodeURIComponent(name)}`);
+  isDirty = false;
+  stepStatus = {};
+  clearLog();
+  render();
+}
+
+function newFlow(flush = true) {
+  if (flush) {
+    flushAutoSave();
+  } else if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+  }
+  state = { name: "untitled_flow_" + Math.floor(Math.random() * 1000), data: {}, steps: [] };
+  try { localStorage.setItem("tibb_active_flow", state.name); } catch (e) {}
+  stepStatus = {};
+  clearLog();
+  render();
+}
+
+async function saveFlow() {
+  state.name = document.getElementById("flow-name").value.trim() || state.name;
+  if (!state.name) return;
+  isDirty = false;
+  lastDeletedFlowName = null;
+  try {
+    const res = await fetch(`/api/flows/${encodeURIComponent(state.name)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ graph: state, version: state.version }),
+    });
+    if (res.status === 409) {
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = null;
+      isDirty = false;
+      addLog(`⚠️ Flow '${state.name}' was modified externally by an agent. Reloading latest from server...`, "log-warn");
+      await loadFlow(state.name);
+      return;
+    }
+    if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+    const data = await res.json().catch(() => ({}));
+    if (data.version) state.version = data.version;
+    await refreshFlowList();
+    setStatus("saved");
+  } catch (err) {
+    addLog("Save failed: " + err, "log-fail");
+  }
+}
+
+async function deleteFlow() {
+  const toDelete = state ? state.name : null;
+  if (!toDelete) return;
+  if (!confirm(`Delete flow "${toDelete}"?`)) return;
+
+  lastDeletedFlowName = toDelete;
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+  }
+
+  try {
+    localStorage.removeItem("tibb_draft_" + toDelete);
+    if (localStorage.getItem("tibb_active_flow") === toDelete) {
+      localStorage.removeItem("tibb_active_flow");
+    }
+  } catch (e) {}
+
+  state = { name: "", data: {}, steps: [] };
+
+  await api(`/api/flows/${encodeURIComponent(toDelete)}`, { method: "DELETE" });
+  await refreshFlowList();
+
+  const remaining = currentFlowList.filter(n => n !== toDelete);
+  if (remaining.length > 0) {
+    await loadFlow(remaining[0]);
+  } else {
+    newFlow(false);
+  }
+}
+
+function cleanUpFlow(mode) {
+  mode = mode || document.getElementById("clean-layout-mode")?.value || "vertical";
+
+  function tidyNode(node) {
+    if (!node) return;
+    if (node.kind === "call") {
+      node.hide_validators = true;
+      node.collapse_params = true;
+      node.collapse_json = true;
+      for (const v of node.validate || []) tidyNode(v);
+    } else if (node.kind === "condition") {
+      for (const s of node.then_steps || []) tidyNode(s);
+      for (const s of node.else_steps || []) tidyNode(s);
+    } else if (node.kind === "split") {
+      for (const b of node.branches || []) {
+        for (const s of b.steps || []) tidyNode(s);
+      }
+    }
+  }
+
+  for (const step of state.steps) {
+    tidyNode(step);
+  }
+
+  if (mode === "horizontal") {
+    // Pipeline DAG mode: steps flow left-to-right along x-axis
+    let curX = 80;
+    const baseY = 240;
+    for (const step of state.steps) {
+      step.pos = { x: curX, y: baseY };
+      if (step.kind === "condition") {
+        let ty = baseY - 180;
+        let tx = curX + 380;
+        for (const s of step.then_steps || []) {
+          s.pos = { x: tx, y: ty };
+          tx += 360;
+        }
+        let ey = baseY + 200;
+        let ex = curX + 380;
+        for (const s of step.else_steps || []) {
+          s.pos = { x: ex, y: ey };
+          ex += 360;
+        }
+        curX = Math.max(curX + 380, Math.max(tx, ex) + 20);
+      } else if (step.kind === "split") {
+        const branches = step.branches || [];
+        const total = branches.length;
+        const halfSpan = Math.max(0, (total - 1) * 110);
+        let maxX = curX + 380;
+        for (let bi = 0; bi < total; bi++) {
+          const b = branches[bi];
+          const by = baseY - halfSpan + (bi * 240);
+          let bx = curX + 380;
+          for (const s of b.steps || []) {
+            s.pos = { x: bx, y: by };
+            bx += 360;
+          }
+          if (bx > maxX) maxX = bx;
+        }
+        curX = Math.max(curX + 380, maxX + 20);
+      } else if (step.kind === "call") {
+        let vy = baseY + 260;
+        for (const v of step.validate || []) {
+          v.pos = { x: curX, y: vy };
+          vy += 140;
+        }
+        curX += 380;
+      } else {
+        curX += 380;
+      }
+    }
+  } else if (mode === "grid") {
+    // 3-column wrapped grid layout
+    const colWidth = 380;
+    const rowHeight = 320;
+    const cols = 3;
+    let idx = 0;
+    for (const step of state.steps) {
+      const col = idx % cols;
+      const row = Math.floor(idx / cols);
+      const gx = 80 + (col * colWidth);
+      const gy = 80 + (row * rowHeight);
+      step.pos = { x: gx, y: gy };
+      if (step.kind === "condition") {
+        let tx = gx + 370;
+        for (const s of step.then_steps || []) {
+          s.pos = { x: tx, y: gy - 30 };
+          tx += 360;
+        }
+        let ex = gx + 370;
+        for (const s of step.else_steps || []) {
+          s.pos = { x: ex, y: gy + 180 };
+          ex += 360;
+        }
+      } else if (step.kind === "split") {
+        let bi = 0;
+        for (const b of step.branches || []) {
+          let bx = gx + 370;
+          for (const s of b.steps || []) {
+            s.pos = { x: bx, y: gy + (bi * 190) };
+            bx += 360;
+          }
+          bi++;
+        }
+      } else if (step.kind === "call") {
+        let vy = gy + 190;
+        for (const v of step.validate || []) {
+          v.pos = { x: gx + 360, y: vy };
+          vy += 140;
+        }
+      }
+      idx++;
+    }
+  } else {
+    // Generous vertical flow (ZERO overlaps)
+    let y = 80;
+    for (const step of state.steps) {
+      step.pos = { x: 80, y };
+      if (step.kind === "condition") {
+        let ty = y - 40;
+        let tx = 80 + 380;
+        for (const s of step.then_steps || []) {
+          s.pos = { x: tx, y: ty };
+          tx += 360;
+        }
+        let ey = y + 200;
+        let ex = 80 + 380;
+        for (const s of step.else_steps || []) {
+          s.pos = { x: ex, y: ey };
+          ex += 360;
+        }
+        y += 460;
+      } else if (step.kind === "split") {
+        const branches = step.branches || [];
+        let by = y - 20;
+        for (let bi = 0; bi < branches.length; bi++) {
+          const b = branches[bi];
+          let bx = 80 + 380;
+          for (const s of b.steps || []) {
+            s.pos = { x: bx, y: by };
+            bx += 360;
+          }
+          by += 240;
+        }
+        y += Math.max(280, branches.length * 240 + 40);
+      } else if (step.kind === "call") {
+        let vy = y;
+        for (const v of step.validate || []) {
+          v.pos = { x: 80 + 380, y: vy };
+          vy += 140;
+        }
+        const vCount = (step.validate || []).length;
+        y += Math.max(280, vCount * 140 + 40);
+      } else if (step.kind === "flow") {
+        y += 240;
+      } else {
+        y += 280;
+      }
+    }
+  }
+
+  // Smooth animation during clean up glide
+  const inner = document.getElementById("canvas-inner");
+  inner.classList.add("cleaning-up");
+  render();
+  triggerAutoSave();
+  setStatus(`✨ flow aligned (${mode} layout)`);
+
+  const startTime = performance.now();
+  function animateEdges(now) {
+    drawEdges();
+    if (now - startTime < 480) {
+      requestAnimationFrame(animateEdges);
+    } else {
+      inner.classList.remove("cleaning-up");
+      drawEdges();
+      autosizeCanvas();
+    }
+  }
+  requestAnimationFrame(animateEdges);
+}
+
+// ---------------------------------------------------------------------
+// Run
+// ---------------------------------------------------------------------
+
+function clearLog() { document.getElementById("log").innerHTML = ""; }
+function addLog(text, cls) {
+  const div = document.createElement("div");
+  if (cls) div.className = cls;
+  div.textContent = text;
+  const log = document.getElementById("log");
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+function setStatus(text) { document.getElementById("run-status").textContent = text; }
+
+function logStep(step, depth) {
+  const pad = "  ".repeat(depth);
+  const row = document.createElement("div");
+  row.className = "log-step-row " + (step.status === "pass" ? "log-pass" : "log-fail");
+
+  const textSpan = document.createElement("span");
+  textSpan.textContent = `${pad}[${step.status.toUpperCase()}] ${step.kind}: ${step.name}`;
+  row.appendChild(textSpan);
+
+  if (step.response) {
+    if (step.id) stepResponses[step.id] = step.response;
+    const respBtn = document.createElement("button");
+    const isPass = step.response.status_code >= 200 && step.response.status_code < 300;
+    respBtn.className = "log-resp-badge " + (isPass ? "resp-badge-pass" : "resp-badge-fail");
+    respBtn.textContent = (step.response.status_code ? `${step.response.status_code} ` : "") + "Response";
+    respBtn.title = "View HTTP Response";
+    respBtn.onclick = () => openResponseModal(step.name, step.response);
+    row.appendChild(respBtn);
+  }
+
+  const log = document.getElementById("log");
+  log.appendChild(row);
+
+  if (step.error) {
+    for (const line of step.error.split("\n")) {
+      addLog(`${pad}    ${line}`, "log-dim");
+    }
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
+async function runFlow(overrides) {
+  await saveFlow();
+  stepStatus = {};
+  stepResponses = {};
+  clearLog();
+  const wsIdForValidation = activeWorkspace ? activeWorkspace.id : null;
+  const validationPath = wsIdForValidation
+    ? `/api/workspaces/${encodeURIComponent(wsIdForValidation)}/flows/${encodeURIComponent(state.name)}/validate`
+    : `/api/flows/${encodeURIComponent(state.name)}/validate`;
+  try {
+    const preflight = await api(validationPath);
+    if (!preflight.valid) {
+      setStatus("INCOMPLETE");
+      addLog("OpenAPI preflight found missing required arguments; nothing was executed.", "log-fail");
+      for (const issue of preflight.issues || []) {
+        if (issue.node_id) stepStatus[issue.node_id] = "fail";
+        addLog(`  ${issue.message}`, "log-fail");
+      }
+      applyStepStatuses();
+      return;
+    }
+  } catch (err) {
+    addLog(`preflight unavailable: ${err.message || err}`, "log-fail");
+    return;
+  }
+  setStatus("running...");
+
+  const wsId = activeWorkspace ? activeWorkspace.id : null;
+  const proto = location.protocol === "https:" ? "wss:" : "ws:";
+  let wsUrl = wsId
+    ? `${proto}//${location.host}/ws/workspaces/${encodeURIComponent(wsId)}/flows/${encodeURIComponent(state.name)}/run`
+    : `${proto}//${location.host}/ws/flows/${encodeURIComponent(state.name)}/run`;
+
+  const queryParams = new URLSearchParams();
+  if (overrides && overrides.params && Object.keys(overrides.params).length > 0) {
+    queryParams.set("params", JSON.stringify(overrides.params));
+  }
+  if (overrides && overrides.base_url) {
+    queryParams.set("base_url", overrides.base_url);
+  }
+  const qs = queryParams.toString();
+  if (qs) {
+    wsUrl += "?" + qs;
+  }
+
+  if (overrides && (overrides.params || overrides.base_url)) {
+    addLog(`running ${state.name} with custom parameters`, "log-dim");
+    if (overrides.base_url) addLog(`  target base_url: ${overrides.base_url}`, "log-dim");
+    if (overrides.params && Object.keys(overrides.params).length > 0) {
+      addLog(`  params: ${JSON.stringify(overrides.params)}`, "log-dim");
+    }
+  } else {
+    addLog(`running ${state.name}`, "log-dim");
+  }
+
+  ws = new WebSocket(wsUrl);
+
+  ws.onmessage = (evt) => {
+    const msg = JSON.parse(evt.data);
+    if (msg.type === "step") {
+      if (msg.step.id) {
+        stepStatus[msg.step.id] = msg.step.status;
+        if (msg.step.response) stepResponses[msg.step.id] = msg.step.response;
+      }
+      logStep(msg.step, msg.step.kind === "check" ? 1 : 0);
+      applyStepStatuses();
+    } else if (msg.type === "done") {
+      setStatus(msg.report.status === "pass" ? "PASS" : "FAIL");
+      addLog(`--- flow ${msg.report.status.toUpperCase()} (${msg.report.duration_s.toFixed(3)}s) ---`, "log-dim");
+      if (msg.report.error) addLog(msg.report.error, "log-fail");
+    } else if (msg.type === "error") {
+      setStatus("ERROR");
+      addLog("error: " + msg.message, "log-fail");
+    } else if (msg.type === "invalid") {
+      setStatus("INCOMPLETE");
+      for (const issue of msg.issues || []) addLog(issue.message, "log-fail");
+    }
+  };
+  ws.onerror = () => addLog("websocket error", "log-fail");
+}
+
+function applyStepStatuses() {
+  for (const el of document.querySelectorAll(".node-card")) {
+    el.classList.remove("pass", "fail");
+    const status = stepStatus[el.dataset.nodeId];
+    if (status) el.classList.add(status);
+
+    const resp = stepResponses[el.dataset.nodeId];
+    let badge = el.querySelector(".card-resp-badge");
+    if (resp && !badge) {
+      const subRow = el.querySelector(".card-head-sub") || el.querySelector(".card-head");
+      if (subRow) {
+        const spacer = subRow.querySelector(".spacer");
+        badge = document.createElement("button");
+        const isPass = resp.status_code >= 200 && resp.status_code < 300;
+        badge.className = "card-resp-badge " + (isPass ? "resp-pass" : "resp-fail");
+        badge.innerHTML = `${resp.status_code || "RESP"} &bull; View`;
+        badge.title = "Click to inspect exact HTTP response";
+        badge.onmousedown = (e) => e.stopPropagation();
+        badge.onclick = (e) => {
+          e.stopPropagation();
+          openResponseModal(el.dataset.nodeId, resp);
+        };
+        if (spacer) subRow.insertBefore(badge, spacer);
+        else subRow.appendChild(badge);
+      }
+    } else if (resp && badge) {
+      const isPass = resp.status_code >= 200 && resp.status_code < 300;
+      badge.className = "card-resp-badge " + (isPass ? "resp-pass" : "resp-fail");
+      badge.innerHTML = `${resp.status_code || "RESP"} &bull; View`;
+    }
+  }
+}
+
+async function runSingleNodeUI(node, card, runBtn, overrides) {
+  if (runBtn) {
+    runBtn.disabled = true;
+    runBtn.textContent = "⏳...";
+  }
+  setStatus(`running ${node.tool || node.bind_as || node.id}...`);
+  if (overrides && overrides.args_override) {
+    addLog(`[RUN NODE CUSTOM] ${node.tool || node.bind_as || node.id}`, "log-dim");
+  } else {
+    addLog(`[RUN NODE] ${node.tool || node.bind_as || node.id}`, "log-dim");
+  }
+  switchTab("log");
+
+  try {
+    const wsId = activeWorkspace ? activeWorkspace.id : null;
+    const runUrl = wsId
+      ? `/api/workspaces/${encodeURIComponent(wsId)}/flows/${encodeURIComponent(state.name)}/nodes/${encodeURIComponent(node.id)}/run`
+      : `/api/flows/${encodeURIComponent(state.name)}/nodes/${encodeURIComponent(node.id)}/run`;
+
+    const reqBody = { graph: state };
+    if (overrides) {
+      if (overrides.args_override) reqBody.args_override = overrides.args_override;
+      if (overrides.data_override) reqBody.data_override = overrides.data_override;
+      if (overrides.base_url) reqBody.base_url = overrides.base_url;
+    }
+
+    const res = await api(runUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(reqBody),
+    });
+
+    stepStatus[node.id] = res.status;
+    if (res.response) {
+      stepResponses[node.id] = res.response;
+    }
+    applyStepStatuses();
+
+    if (res.report) {
+      logStep(res.report, 0);
+      for (const ch of res.report.children || []) {
+        if (ch.id) {
+          stepStatus[ch.id] = ch.status;
+          if (ch.response) stepResponses[ch.id] = ch.response;
+        }
+        logStep(ch, 1);
+      }
+    }
+    if (res.error) {
+      addLog(`error: ${res.error}`, "log-fail");
+    }
+
+    setStatus(res.status === "pass" ? "PASS" : "FAIL");
+    render();
+    if (res.response) {
+      openResponseModal(node.tool || node.bind_as || node.id, res.response);
+    }
+  } catch (err) {
+    addLog(`run node failed: ${err.message}`, "log-fail");
+    setStatus("ERROR");
+  } finally {
+    if (runBtn) {
+      runBtn.disabled = false;
+      runBtn.innerHTML = "&#9654; Run";
+    }
+  }
+}
+
+function openResponseModal(title, resp) {
+  activeResponseData = resp;
+  openModal("response-modal");
+  document.getElementById("resp-modal-title").textContent = title || "Response";
+
+  const methodEl = document.getElementById("resp-modal-method");
+  if (resp.method) {
+    methodEl.textContent = resp.method.toUpperCase();
+    methodEl.style.display = "";
+  } else {
+    methodEl.style.display = "none";
+  }
+
+  const urlEl = document.getElementById("resp-modal-url");
+  if (resp.url) {
+    urlEl.textContent = resp.url;
+    urlEl.style.display = "";
+  } else {
+    urlEl.style.display = "none";
+  }
+
+  const statusEl = document.getElementById("resp-modal-status");
+  const code = resp.status_code || (resp.status === "pass" ? 200 : 400);
+  statusEl.textContent = `${code} ${getStatusText(code)}`;
+  statusEl.className = "resp-badge-status " + (code >= 200 && code < 300 ? "resp-pass" : "resp-fail");
+
+  const bodyPre = document.getElementById("resp-body-text");
+  if (resp.body !== undefined && resp.body !== null) {
+    try {
+      bodyPre.textContent = typeof resp.body === "object" ? JSON.stringify(resp.body, null, 2) : String(resp.body);
+    } catch (e) {
+      bodyPre.textContent = String(resp.body);
+    }
+  } else if (resp.text) {
+    bodyPre.textContent = resp.text;
+  } else {
+    bodyPre.textContent = "(empty response body)";
+  }
+
+  const headersPre = document.getElementById("resp-headers-text");
+  if (resp.headers && Object.keys(resp.headers).length > 0) {
+    headersPre.textContent = JSON.stringify(resp.headers, null, 2);
+  } else {
+    headersPre.textContent = "(no headers)";
+  }
+
+  const rawPre = document.getElementById("resp-raw-text");
+  rawPre.textContent = resp.text || (typeof resp.body === "object" ? JSON.stringify(resp.body, null, 2) : String(resp.body || ""));
+
+  switchRespTab("body");
+}
+
+function switchRespTab(tab) {
+  document.getElementById("resp-page-body").hidden = tab !== "body";
+  document.getElementById("resp-page-headers").hidden = tab !== "headers";
+  document.getElementById("resp-page-raw").hidden = tab !== "raw";
+  document.getElementById("resp-tab-body-btn").classList.toggle("active", tab === "body");
+  document.getElementById("resp-tab-headers-btn").classList.toggle("active", tab === "headers");
+  document.getElementById("resp-tab-raw-btn").classList.toggle("active", tab === "raw");
+}
+
+function copyRespContent() {
+  if (!activeResponseData) return;
+  const text = typeof activeResponseData.body === "object"
+    ? JSON.stringify(activeResponseData.body, null, 2)
+    : (activeResponseData.text || String(activeResponseData.body || ""));
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById("resp-copy-btn");
+    const orig = btn.textContent;
+    btn.textContent = "Copied!";
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+
+function getStatusText(code) {
+  const map = {
+    200: "OK", 201: "Created", 202: "Accepted", 204: "No Content",
+    400: "Bad Request", 401: "Unauthorized", 403: "Forbidden",
+    404: "Not Found", 409: "Conflict", 422: "Unprocessable Entity",
+    500: "Internal Server Error", 502: "Bad Gateway", 503: "Service Unavailable"
+  };
+  return map[code] || "";
+}
+
+// ---------------------------------------------------------------------
+// Edit & Run Modals
+// ---------------------------------------------------------------------
+
+let editRunFlowParams = [];
+
+function openEditRunFlowModal() {
+  if (!state || !state.name) {
+    addLog("No active flow to run", "log-fail");
+    return;
+  }
+  document.getElementById("edit-run-flow-title").textContent = `Edit & Run: ${state.name}`;
+  const baseUrlInput = document.getElementById("edit-run-flow-base-url");
+  baseUrlInput.value = (activeWorkspace && activeWorkspace.base_url) ? activeWorkspace.base_url : "http://localhost:8000";
+
+  editRunFlowParams = [];
+  const currentData = state.data || {};
+  for (const [k, v] of Object.entries(currentData)) {
+    editRunFlowParams.push({ key: k, value: valueToInputString(v) });
+  }
+  if (editRunFlowParams.length === 0) {
+    editRunFlowParams.push({ key: "", value: "" });
+  }
+  renderEditRunFlowParams();
+  document.getElementById("edit-run-flow-persist").checked = false;
+  openModal("edit-run-flow-modal");
+}
+
+function renderEditRunFlowParams() {
+  const container = document.getElementById("edit-run-flow-params-container");
+  container.innerHTML = "";
+  if (editRunFlowParams.length === 0) {
+    const empty = document.createElement("div");
+    empty.style.color = "var(--dim)";
+    empty.style.fontSize = "11px";
+    empty.style.padding = "6px 0";
+    empty.textContent = "No seed parameters defined. Click '+ Add Parameter' to add one.";
+    container.appendChild(empty);
+    return;
+  }
+
+  editRunFlowParams.forEach((item, idx) => {
+    const row = document.createElement("div");
+    row.className = "edit-run-param-row";
+
+    const kInput = document.createElement("input");
+    kInput.type = "text";
+    kInput.placeholder = "key (e.g. order_id)";
+    kInput.value = item.key;
+    kInput.style.width = "35%";
+    kInput.oninput = () => { item.key = kInput.value; };
+
+    const vInput = document.createElement("input");
+    vInput.type = "text";
+    vInput.placeholder = "value (e.g. 12345 or true)";
+    vInput.value = item.value;
+    vInput.style.flex = "1";
+    vInput.oninput = () => { item.value = vInput.value; };
+
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "danger";
+    delBtn.innerHTML = "&times;";
+    delBtn.title = "Remove";
+    delBtn.onclick = () => {
+      editRunFlowParams.splice(idx, 1);
+      renderEditRunFlowParams();
+    };
+
+    row.append(kInput, vInput, delBtn);
+    container.appendChild(row);
+  });
+}
+
+async function submitEditRunFlow() {
+  const baseUrlVal = document.getElementById("edit-run-flow-base-url").value.trim();
+  const baseUrl = baseUrlVal || undefined;
+  const params = {};
+  for (const item of editRunFlowParams) {
+    const k = item.key.trim();
+    if (k) {
+      params[k] = parseLooseJSON(item.value);
+    }
+  }
+
+  const persist = document.getElementById("edit-run-flow-persist").checked;
+  if (persist) {
+    state.data = { ...(state.data || {}), ...params };
+    renderDataRows();
+    await saveFlow();
+  }
+
+  closeModals();
+  switchTab("log");
+  runFlow({ params, base_url: baseUrl }).catch(e => addLog(String(e), "log-fail"));
+}
+
+let activeEditNode = null;
+let activeEditNodeCard = null;
+let activeEditNodeArgs = {};
+
+function switchEditRunNodeTab(tab) {
+  const isForm = tab === "form";
+  document.getElementById("edit-run-node-tab-form").classList.toggle("active", isForm);
+  document.getElementById("edit-run-node-tab-json").classList.toggle("active", !isForm);
+  document.getElementById("edit-run-node-page-form").hidden = !isForm;
+  document.getElementById("edit-run-node-page-json").hidden = isForm;
+
+  if (!isForm) {
+    document.getElementById("edit-run-node-json-text").value = JSON.stringify(activeEditNodeArgs, null, 2);
+  } else {
+    try {
+      const parsed = JSON.parse(document.getElementById("edit-run-node-json-text").value);
+      if (typeof parsed === "object" && parsed !== null) {
+        activeEditNodeArgs = parsed;
+        renderEditRunNodeFields();
+      }
+    } catch (e) {
+      // ignore parse error when switching back
+    }
+  }
+}
+
+function openEditRunNodeModal(node, card) {
+  activeEditNode = node;
+  activeEditNodeCard = card;
+  activeEditNodeArgs = JSON.parse(JSON.stringify(node.args || {}));
+
+  const tool = toolsByName[node.tool];
+  const method = (tool && tool.method ? tool.method : "POST").toUpperCase();
+  const path = tool && tool.path ? tool.path : (node.tool || "");
+
+  const methodEl = document.getElementById("edit-run-node-method");
+  methodEl.textContent = method;
+  methodEl.className = "resp-badge-method method-" + method.toLowerCase();
+
+  document.getElementById("edit-run-node-title").textContent = tool ? tool.name : (node.bind_as || node.tool);
+  document.getElementById("edit-run-node-step-id").textContent = node.id || "step";
+  document.getElementById("edit-run-node-path").textContent = path;
+
+  document.getElementById("edit-run-node-persist").checked = false;
+  switchEditRunNodeTab("form");
+  renderEditRunNodeFields();
+  openModal("edit-run-node-modal");
+}
+
+function renderEditRunNodeFields() {
+  const container = document.getElementById("edit-run-node-form-fields");
+  container.innerHTML = "";
+  const tool = toolsByName[activeEditNode.tool];
+
+  if (tool && tool.fields && tool.fields.length > 0) {
+    const paramFields = tool.fields.filter(f => f.in !== "body");
+    const bodyFields = tool.fields.filter(f => f.in === "body");
+
+    function renderGroup(title, fields) {
+      if (!fields || fields.length === 0) return;
+      const secTitle = document.createElement("div");
+      secTitle.className = "form-sec-title";
+      secTitle.textContent = title;
+      container.appendChild(secTitle);
+
+      for (const field of fields) {
+        const row = document.createElement("div");
+        row.className = "field-row";
+        row.style.marginBottom = "6px";
+
+        const label = document.createElement("label");
+        label.style.width = "120px";
+        label.textContent = field.name + (field.in !== "body" ? ` (${field.in})` : "");
+        label.title = label.textContent;
+        if (field.required) {
+          const star = document.createElement("span");
+          star.className = "req-star"; star.textContent = " *";
+          label.appendChild(star);
+        }
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.style.flex = "1";
+        input.placeholder = field.type === "file" ? "@/path/to/file or filename" : field.type + " ($data.x / $ctx.step.path)";
+        const curVal = activeEditNodeArgs[field.name];
+        input.value = curVal === undefined ? "" : valueToInputString(curVal);
+        input.oninput = () => {
+          const coerced = coerceArgValue(input.value, field.type);
+          if (coerced === undefined) {
+            delete activeEditNodeArgs[field.name];
+          } else {
+            activeEditNodeArgs[field.name] = coerced;
+          }
+        };
+
+        row.append(label, input);
+        container.appendChild(row);
+      }
+    }
+
+    renderGroup("Path & Query Parameters", paramFields);
+    renderGroup("Request Body Fields", bodyFields);
+  } else {
+    const secTitle = document.createElement("div");
+    secTitle.className = "form-sec-title";
+    secTitle.textContent = "Arguments";
+    container.appendChild(secTitle);
+
+    const keys = Object.keys(activeEditNodeArgs);
+    if (keys.length === 0) {
+      const empty = document.createElement("div");
+      empty.style.color = "var(--dim)";
+      empty.style.fontSize = "11px";
+      empty.textContent = "No arguments defined. Switch to Raw JSON tab to enter payload.";
+      container.appendChild(empty);
+    } else {
+      for (const k of keys) {
+        const row = document.createElement("div");
+        row.className = "field-row";
+        row.style.marginBottom = "6px";
+
+        const label = document.createElement("label");
+        label.style.width = "120px";
+        label.textContent = k;
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.style.flex = "1";
+        input.value = valueToInputString(activeEditNodeArgs[k]);
+        input.oninput = () => {
+          activeEditNodeArgs[k] = parseLooseJSON(input.value);
+        };
+
+        row.append(label, input);
+        container.appendChild(row);
+      }
+    }
+  }
+}
+
+async function submitEditRunNode() {
+  if (!activeEditNode) return;
+
+  const isJsonTab = !document.getElementById("edit-run-node-page-json").hidden;
+  if (isJsonTab) {
+    try {
+      activeEditNodeArgs = JSON.parse(document.getElementById("edit-run-node-json-text").value);
+    } catch (err) {
+      alert("Invalid JSON payload: " + err.message);
+      return;
+    }
+  }
+
+  const persist = document.getElementById("edit-run-node-persist").checked;
+  if (persist) {
+    activeEditNode.args = JSON.parse(JSON.stringify(activeEditNodeArgs));
+    render();
+    triggerAutoSave();
+  }
+
+  const nodeToRun = activeEditNode;
+  const cardToRun = activeEditNodeCard;
+  const argsOverride = JSON.parse(JSON.stringify(activeEditNodeArgs));
+
+  closeModals();
+  const runBtn = cardToRun ? cardToRun.querySelector(".run-node-btn") : null;
+  await runSingleNodeUI(nodeToRun, cardToRun, runBtn, { args_override: argsOverride });
+}
+
+// ---------------------------------------------------------------------
+// Graph traversal (flatten the step/validate tree for canvas + edges)
+// ---------------------------------------------------------------------
+
+function collectNodesAndEdges() {
+  const nodes = [];   // {node, parentArray}
+  const edges = [];   // {from, to, kind: 'seq' | 'validate' | 'then' | 'else'}
+
+  function visit(node, parentArray) {
+    nodes.push({ node, parentArray });
+    if (node.kind === "call" && !node.hide_validators) {
+      for (const child of node.validate) {
+        edges.push({ from: node.id, to: child.id, kind: "validate" });
+        visit(child, node.validate);
+      }
+    } else if (node.kind === "condition") {
+      const thenSteps = node.then_steps || [];
+      if (thenSteps.length > 0) {
+        edges.push({ from: node.id, to: thenSteps[0].id, kind: "then" });
+        for (let i = 0; i < thenSteps.length; i++) {
+          visit(thenSteps[i], thenSteps);
+          if (i > 0) edges.push({ from: thenSteps[i - 1].id, to: thenSteps[i].id, kind: "seq" });
+        }
+      }
+      const elseSteps = node.else_steps || [];
+      if (elseSteps.length > 0) {
+        edges.push({ from: node.id, to: elseSteps[0].id, kind: "else" });
+        for (let i = 0; i < elseSteps.length; i++) {
+          visit(elseSteps[i], elseSteps);
+          if (i > 0) edges.push({ from: elseSteps[i - 1].id, to: elseSteps[i].id, kind: "seq" });
+        }
+      }
+    } else if (node.kind === "split") {
+      const branches = node.branches || [];
+      for (let bi = 0; bi < branches.length; bi++) {
+        const b = branches[bi];
+        const steps = b.steps || [];
+        if (steps.length > 0) {
+          edges.push({ from: node.id, to: steps[0].id, kind: "split", branchIndex: bi, branchTotal: branches.length });
+          for (let i = 0; i < steps.length; i++) {
+            visit(steps[i], steps);
+            if (i > 0) edges.push({ from: steps[i - 1].id, to: steps[i].id, kind: "seq" });
+          }
+        }
+      }
+    }
+  }
+  for (let i = 0; i < state.steps.length; i++) {
+    visit(state.steps[i], state.steps);
+    if (i > 0) edges.push({ from: state.steps[i - 1].id, to: state.steps[i].id, kind: "seq" });
+  }
+  return { nodes, edges };
+}
+
+function ensurePositions() {
+  let y = 80;
+  for (const step of state.steps) {
+    if (!step.pos) step.pos = { x: 80, y };
+    const stepHeight = step.kind === "condition" ? 460 : (step.kind === "split" ? 180 + ((step.branches || []).length * 240) : 280);
+    y = Math.max(y + stepHeight, step.pos.y + stepHeight);
+    ensureChildPositions(step);
+  }
+}
+function ensureChildPositions(node) {
+  if (node.kind === "call") {
+    let vy = node.pos.y;
+    for (const child of node.validate || []) {
+      if (!child.pos) child.pos = { x: node.pos.x + 360, y: vy };
+      vy = child.pos.y + 140;
+      if (child.kind === "call") ensureChildPositions(child);
+    }
+  } else if (node.kind === "condition") {
+    let tx = node.pos.x + 370;
+    let ty = node.pos.y - 60;
+    for (const s of node.then_steps || []) {
+      if (!s.pos) s.pos = { x: tx, y: ty };
+      tx = s.pos.x + 350;
+      ensureChildPositions(s);
+    }
+    let ex = node.pos.x + 370;
+    let ey = node.pos.y + 180;
+    for (const s of node.else_steps || []) {
+      if (!s.pos) s.pos = { x: ex, y: ey };
+      ex = s.pos.x + 350;
+      ensureChildPositions(s);
+    }
+  } else if (node.kind === "split") {
+    let by = node.pos.y - 20;
+    for (const b of node.branches || []) {
+      let bx = node.pos.x + 370;
+      for (const s of b.steps || []) {
+        if (!s.pos) s.pos = { x: bx, y: by };
+        bx = s.pos.x + 350;
+        ensureChildPositions(s);
+      }
+      by += 150;
+    }
+  }
+}
+function nextChildPos(node) {
+  const idx = (node.validate || []).length;
+  return { x: node.pos.x + 360, y: node.pos.y + idx * 140 };
+}
+function nextBranchPos(node, branch) {
+  const steps = branch === "then" ? (node.then_steps || []) : (node.else_steps || []);
+  const idx = steps.length;
+  const x = (node.pos?.x || 80) + 370 + (idx * 350);
+  const y = (node.pos?.y || 80) + (branch === "then" ? -60 : 180);
+  return { x, y };
+}
+
+function removeNode(node, parentArray) {
+  parentArray.splice(parentArray.indexOf(node), 1);
+  triggerAutoSave();
+  render();
+}
+
+// ---------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------
+
+function render() {
+  document.getElementById("flow-name").value = state.name;
+  const flowTitleView = document.getElementById("flow-title-view");
+  if (flowTitleView) flowTitleView.textContent = state.name || "untitled_flow";
+  renderDataPanel();
+  renderCanvas();
+  buildToolOptions(document.getElementById("add-step-tool"), "full");
+  const addFlowSelect = document.getElementById("add-flow-select");
+  if (addFlowSelect) {
+    populateFlowOptions(addFlowSelect, addFlowSelect.value, state.name);
+  }
+  for (const el of document.querySelectorAll(".flow-item")) {
+    el.classList.toggle("active", el.textContent === state.name);
+  }
+}
+
+function renderDataPanel() {
+  const rows = document.getElementById("data-rows");
+  rows.innerHTML = "";
+  const keys = Object.keys(state.data || {});
+  if (currentMode === "view") {
+    if (keys.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "view-dim-text";
+      empty.textContent = "No seed data values defined.";
+      rows.appendChild(empty);
+      return;
+    }
+    for (const key of keys) {
+      const pill = document.createElement("div");
+      pill.className = "view-kv-pill";
+      pill.innerHTML = `<span class="kv-key">$data.${escapeHtml(key)}:</span> <span class="kv-val">${escapeHtml(valueToInputString(state.data[key]))}</span>`;
+      rows.appendChild(pill);
+    }
+    return;
+  }
+  for (const key of keys) {
+    const row = document.createElement("div");
+    row.className = "kv-row";
+
+    const keyInput = document.createElement("input");
+    keyInput.type = "text"; keyInput.value = key; keyInput.placeholder = "key";
+    keyInput.onchange = () => {
+      const v = state.data[key];
+      delete state.data[key];
+      state.data[keyInput.value] = v;
+      render();
+      triggerAutoSave();
+    };
+
+    const valInput = document.createElement("input");
+    valInput.type = "text"; valInput.value = valueToInputString(state.data[key]); valInput.placeholder = "value (JSON or text)";
+    valInput.onchange = () => {
+      state.data[key] = parseLooseJSON(valInput.value);
+      triggerAutoSave();
+    };
+
+    const del = document.createElement("button");
+    del.textContent = "x";
+    del.onclick = () => {
+      delete state.data[key];
+      render();
+      triggerAutoSave();
+    };
+
+    row.append(keyInput, valInput, del);
+    rows.appendChild(row);
+  }
+}
+
+function renderCanvas() {
+  ensurePositions();
+  const inner = document.getElementById("canvas-inner");
+  inner.querySelectorAll(".node-card").forEach(el => el.remove());
+  document.getElementById("canvas-empty")?.remove();
+
+  const { nodes } = collectNodesAndEdges();
+  if (nodes.length === 0) {
+    const empty = document.createElement("div");
+    empty.id = "canvas-empty";
+    empty.className = "log-dim";
+    empty.textContent = "No steps yet -- add one below.";
+    inner.appendChild(empty);
+  }
+
+  for (const { node, parentArray } of nodes) {
+    let el;
+    if (node.kind === "call") el = buildCallCardEl(node, parentArray);
+    else if (node.kind === "condition") el = buildConditionCardEl(node, parentArray);
+    else if (node.kind === "flow") el = buildFlowCardEl(node, parentArray);
+    else if (node.kind === "split") el = buildSplitCardEl(node, parentArray);
+    else el = buildCheckCardEl(node, parentArray);
+    el.dataset.nodeId = node.id;
+    el.style.left = node.pos.x + "px";
+    el.style.top = node.pos.y + "px";
+    if (stepStatus[node.id]) el.classList.add(stepStatus[node.id]);
+    inner.appendChild(el);
+    makeDraggable(el, node);
+  }
+  drawEdges();
+  autosizeCanvas();
+}
+
+function drawEdges() {
+  const { edges } = collectNodesAndEdges();
+  const svg = document.getElementById("edge-layer");
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="grad-seq" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#38bdf8" />
+        <stop offset="100%" stop-color="#818cf8" />
+      </linearGradient>
+      <marker id="arrow-seq" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+      </marker>
+      <marker id="arrow-then" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#34d399" />
+      </marker>
+      <marker id="arrow-else" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#fbbf24" />
+      </marker>
+      <marker id="arrow-split" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#22d3ee" />
+      </marker>
+    </defs>
+  `;
+
+  for (const edge of edges) {
+    const fromEl = document.querySelector(`[data-node-id="${CSS.escape(edge.from)}"]`);
+    const toEl = document.querySelector(`[data-node-id="${CSS.escape(edge.to)}"]`);
+    if (!fromEl || !toEl) continue;
+
+    let x1, y1, x2, y2, d;
+    const isVerticalSeq = edge.kind === "seq" &&
+      Math.abs(fromEl.offsetLeft - toEl.offsetLeft) < 140 &&
+      toEl.offsetTop > fromEl.offsetTop;
+
+    if (isVerticalSeq) {
+      // Direct top-to-bottom pipeline connection with downward curve
+      x1 = fromEl.offsetLeft + fromEl.offsetWidth / 2;
+      y1 = fromEl.offsetTop + fromEl.offsetHeight;
+      x2 = toEl.offsetLeft + toEl.offsetWidth / 2;
+      y2 = toEl.offsetTop;
+      const dy = Math.max(20, (y2 - y1) * 0.45);
+      d = `M ${x1} ${y1} C ${x1} ${y1 + dy}, ${x2} ${y2 - dy}, ${x2} ${y2}`;
+    } else {
+      // Left-to-right branch or horizontal pipeline connection
+      x1 = fromEl.offsetLeft + fromEl.offsetWidth;
+      y1 = fromEl.offsetTop + fromEl.offsetHeight / 2;
+      if (edge.kind === "then") y1 = fromEl.offsetTop + 140;
+      else if (edge.kind === "else") y1 = fromEl.offsetTop + fromEl.offsetHeight - 30;
+      else if (edge.kind === "split") {
+        const bIdx = edge.branchIndex || 0;
+        const bTotal = edge.branchTotal || 2;
+        y1 = fromEl.offsetTop + 60 + (bIdx * (fromEl.offsetHeight - 90) / Math.max(1, bTotal - 1));
+      }
+      x2 = toEl.offsetLeft;
+      y2 = toEl.offsetTop + toEl.offsetHeight / 2;
+      const dx = Math.max(35, Math.abs(x2 - x1) * 0.45);
+      d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+    }
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+
+    let stroke = "#38bdf8";
+    let strokeWidth = "2.5";
+    let marker = "url(#arrow-seq)";
+    path.classList.add("edge-seq", "edge-animated");
+    path.setAttribute("stroke-dasharray", "8,4");
+
+    if (edge.kind === "validate") {
+      stroke = "#64748b";
+      strokeWidth = "1.5";
+      marker = "";
+      path.setAttribute("stroke-dasharray", "4,4");
+      path.classList.remove("edge-animated");
+    } else if (edge.kind === "then") {
+      stroke = "#34d399";
+      strokeWidth = "2.5";
+      marker = "url(#arrow-then)";
+      path.classList.add("edge-then");
+      path.setAttribute("stroke-dasharray", "8,4");
+    } else if (edge.kind === "else") {
+      stroke = "#fbbf24";
+      strokeWidth = "2.5";
+      marker = "url(#arrow-else)";
+      path.classList.add("edge-else");
+      path.setAttribute("stroke-dasharray", "8,4");
+    } else if (edge.kind === "split") {
+      stroke = "#22d3ee";
+      strokeWidth = "2.5";
+      marker = "url(#arrow-split)";
+      path.classList.add("edge-split");
+      path.setAttribute("stroke-dasharray", "8,4");
+    }
+
+    path.setAttribute("stroke", stroke);
+    path.setAttribute("stroke-width", strokeWidth);
+    path.setAttribute("fill", "none");
+    if (marker) path.setAttribute("marker-end", marker);
+    svg.appendChild(path);
+  }
+}
+
+function autosizeCanvas() {
+  const inner = document.getElementById("canvas-inner");
+  let maxX = 1600, maxY = 1000;
+  for (const el of inner.querySelectorAll(".node-card")) {
+    maxX = Math.max(maxX, el.offsetLeft + el.offsetWidth + 400);
+    maxY = Math.max(maxY, el.offsetTop + el.offsetHeight + 400);
+  }
+  inner.style.width = maxX + "px";
+  inner.style.height = maxY + "px";
+  const svg = document.getElementById("edge-layer");
+  svg.setAttribute("width", maxX);
+  svg.setAttribute("height", maxY);
+}
+
+function makeDraggable(el, node) {
+  const head = el.querySelector(".card-head");
+  if (!head) return;
+  head.addEventListener("mousedown", (e) => {
+    if (currentMode === "view") return;
+    if (["SELECT", "INPUT", "BUTTON", "OPTION"].includes(e.target.tagName)) return;
+    e.preventDefault();
+    const startX = e.clientX, startY = e.clientY;
+    const origX = node.pos.x, origY = node.pos.y;
+    el.classList.add("dragging");
+
+    function onMove(ev) {
+      node.pos.x = Math.max(0, origX + (ev.clientX - startX));
+      node.pos.y = Math.max(0, origY + (ev.clientY - startY));
+      el.style.left = node.pos.x + "px";
+      el.style.top = node.pos.y + "px";
+      drawEdges();
+    }
+    function onUp() {
+      el.classList.remove("dragging");
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      autosizeCanvas();
+      triggerAutoSave();
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  });
+}
+
+function setupPanning() {
+  const canvas = document.getElementById("canvas");
+  let panning = false, startX, startY, scrollLeft, scrollTop;
+  canvas.addEventListener("mousedown", (e) => {
+    if (e.target.closest(".node-card")) return;
+    panning = true;
+    canvas.classList.add("panning");
+    startX = e.clientX; startY = e.clientY;
+    scrollLeft = canvas.scrollLeft; scrollTop = canvas.scrollTop;
+  });
+  window.addEventListener("mousemove", (e) => {
+    if (!panning) return;
+    canvas.scrollLeft = scrollLeft - (e.clientX - startX);
+    canvas.scrollTop = scrollTop - (e.clientY - startY);
+  });
+  window.addEventListener("mouseup", () => { panning = false; canvas.classList.remove("panning"); });
+}
+
+function loadFlag(key, fallback) {
+  try { const v = localStorage.getItem(key); return v === null ? fallback : v === "1"; } catch (e) { return fallback; }
+}
+function saveFlag(key, value) {
+  try { localStorage.setItem(key, value ? "1" : "0"); } catch (e) { /* ignore */ }
+}
+
+function setupCollapsibles() {
+  const app = document.getElementById("app");
+  const sidebar = document.getElementById("sidebar");
+  const logPanel = document.getElementById("log-panel");
+  const dataPanel = document.getElementById("data-panel");
+  const sidebarToggle = document.getElementById("sidebar-toggle");
+  const logToggle = document.getElementById("log-toggle");
+  const dataArrow = document.getElementById("data-toggle-arrow");
+
+  let sidebarCollapsed = loadFlag("tibb_sidebar_collapsed", false);
+  let logCollapsed = loadFlag("tibb_log_collapsed", false);
+  let dataCollapsed = loadFlag("tibb_data_collapsed", false);
+
+  function apply() {
+    sidebar.classList.toggle("collapsed", sidebarCollapsed);
+    logPanel.classList.toggle("collapsed", logCollapsed);
+    dataPanel.classList.toggle("collapsed", dataCollapsed);
+    sidebarToggle.innerHTML = sidebarCollapsed ? "&raquo;" : "&laquo;";
+    logToggle.innerHTML = logCollapsed ? "&laquo;" : "&raquo;";
+    dataArrow.innerHTML = dataCollapsed ? "&#9660;" : "&#9650;";
+    app.style.gridTemplateColumns = `${sidebarCollapsed ? 28 : 220}px 1fr ${logCollapsed ? 28 : 320}px`;
+    requestAnimationFrame(() => { drawEdges(); });
+  }
+
+  sidebarToggle.onclick = () => { sidebarCollapsed = !sidebarCollapsed; saveFlag("tibb_sidebar_collapsed", sidebarCollapsed); apply(); };
+  logToggle.onclick = () => { logCollapsed = !logCollapsed; saveFlag("tibb_log_collapsed", logCollapsed); apply(); };
+  document.getElementById("data-panel-head").onclick = () => { dataCollapsed = !dataCollapsed; saveFlag("tibb_data_collapsed", dataCollapsed); apply(); };
+
+  apply();
+}
+
+function buildCallCardEl(node, parentArray) {
+  const tool = toolsByName[node.tool];
+  const card = document.createElement("div");
+  const method = (tool && tool.method ? tool.method : "POST").toUpperCase();
+  card.className = `node-card step-card card-method-${method.toLowerCase()}` + (currentMode === "view" ? " node-card-view" : "");
+
+  const head = document.createElement("div");
+  head.className = "card-head";
+
+  const topRow = document.createElement("div");
+  topRow.className = "card-head-row card-head-top";
+
+  const methodBadge = document.createElement("span");
+  methodBadge.className = `method-tag method-${method.toLowerCase()}`;
+  methodBadge.textContent = method;
+
+  const runBtn = document.createElement("button");
+  runBtn.className = "run-node-btn";
+  runBtn.innerHTML = "&#9654; Run";
+  runBtn.title = "Run only this node";
+  runBtn.onmousedown = (e) => e.stopPropagation();
+  runBtn.onclick = (e) => {
+    e.stopPropagation();
+    runSingleNodeUI(node, card, runBtn);
+  };
+
+  const editRunBtn = document.createElement("button");
+  editRunBtn.className = "run-edit-node-btn";
+  editRunBtn.innerHTML = "&#9998; Edit &amp; Run";
+  editRunBtn.title = "Customize payload / args and run this node";
+  editRunBtn.onmousedown = (e) => e.stopPropagation();
+  editRunBtn.onclick = (e) => {
+    e.stopPropagation();
+    openEditRunNodeModal(node, card);
+  };
+
+  if (currentMode === "view") {
+    const cleanName = getCleanToolName(tool) || node.tool || "(unknown endpoint)";
+    const toolTitle = document.createElement("div");
+    toolTitle.className = "view-tool-title";
+    toolTitle.textContent = cleanName;
+    toolTitle.title = tool ? `${tool.method} ${tool.path} (${tool.name})` : node.tool;
+
+    topRow.append(methodBadge, toolTitle, runBtn, editRunBtn);
+    head.appendChild(topRow);
+
+    const subRow = document.createElement("div");
+    subRow.className = "card-head-row card-head-sub view-sub-row";
+
+    if (node.bind_as) {
+      const bindPill = document.createElement("span");
+      bindPill.className = "view-bind-pill";
+      bindPill.textContent = `↳ $ctx.${node.bind_as}`;
+      bindPill.title = `Bound as $ctx.${node.bind_as}`;
+      subRow.appendChild(bindPill);
+    }
+
+    if (tool && tool.path) {
+      const pathPill = document.createElement("span");
+      pathPill.className = "view-path-pill";
+      pathPill.textContent = tool.path;
+      pathPill.title = tool.path;
+      subRow.appendChild(pathPill);
+    }
+
+    if (stepResponses[node.id]) {
+      const resp = stepResponses[node.id];
+      const respBtn = document.createElement("button");
+      const isPass = resp.status_code >= 200 && resp.status_code < 300;
+      respBtn.className = "card-resp-badge " + (isPass ? "resp-pass" : "resp-fail");
+      respBtn.innerHTML = `${resp.status_code || "RESP"} &bull; View`;
+      respBtn.title = "Click to inspect exact HTTP response";
+      respBtn.onmousedown = (e) => e.stopPropagation();
+      respBtn.onclick = (e) => {
+        e.stopPropagation();
+        openResponseModal(node.tool || node.bind_as || node.id, resp);
+      };
+      subRow.appendChild(respBtn);
+    }
+
+    if (subRow.children.length > 0) {
+      head.appendChild(subRow);
+    }
+    card.appendChild(head);
+
+    const configuredArgs = Object.entries(node.args || {}).filter(([_, v]) => v !== undefined && v !== "");
+    if (configuredArgs.length > 0) {
+      const argsSec = document.createElement("div");
+      argsSec.className = "view-args-sec";
+      for (const [k, v] of configuredArgs) {
+        const row = document.createElement("div");
+        row.className = "view-arg-pill";
+        const isRef = String(v).startsWith("$");
+        row.innerHTML = `<span class="arg-name">${escapeHtml(k)}:</span> <span class="arg-val ${isRef ? 'is-ref' : ''}">${escapeHtml(valueToInputString(v))}</span>`;
+        argsSec.appendChild(row);
+      }
+      card.appendChild(argsSec);
+    } else {
+      const noArgs = document.createElement("div");
+      noArgs.className = "view-no-args";
+      noArgs.textContent = "Default parameters";
+      card.appendChild(noArgs);
+    }
+
+    if (node.validate && node.validate.length > 0) {
+      const valSec = document.createElement("div");
+      valSec.className = "view-val-sec";
+      for (const ch of node.validate) {
+        const valPill = document.createElement("span");
+        const st = stepStatus[ch.id];
+        valPill.className = "view-val-pill" + (st ? " " + st : "");
+        let label = ch.check_type === "status"
+          ? `status == ${ch.status}`
+          : `${ch.path || 'body'} ${ch.not_none ? '!= null' : ''} ${ch.equals !== undefined ? '== ' + valueToInputString(ch.equals) : ''}`;
+        valPill.innerHTML = `${st === "pass" ? "✓" : (st === "fail" ? "✕" : "•")} ${escapeHtml(label)}`;
+        valSec.appendChild(valPill);
+      }
+      card.appendChild(valSec);
+    }
+
+    return card;
+  }
+
+  const toolSelect = document.createElement("select");
+  buildToolOptions(toolSelect, "compact");
+  toolSelect.value = node.tool;
+  toolSelect.title = tool ? `${tool.method} ${tool.path} (${tool.name})` : node.tool;
+  toolSelect.onchange = () => {
+    node.tool = toolSelect.value;
+    node.args = {};
+    render();
+    triggerAutoSave();
+  };
+
+  topRow.append(methodBadge, toolSelect, runBtn, editRunBtn);
+
+  const subRow = document.createElement("div");
+  subRow.className = "card-head-row card-head-sub";
+
+  const bindInput = document.createElement("input");
+  bindInput.type = "text"; bindInput.placeholder = "bind_as";
+  bindInput.value = node.bind_as || "";
+  bindInput.title = "Bind result to $ctx.<name>";
+  bindInput.onchange = () => {
+    node.bind_as = bindInput.value;
+    triggerAutoSave();
+  };
+
+  subRow.appendChild(bindInput);
+
+  if (stepResponses[node.id]) {
+    const resp = stepResponses[node.id];
+    const respBtn = document.createElement("button");
+    const isPass = resp.status_code >= 200 && resp.status_code < 300;
+    respBtn.className = "card-resp-badge " + (isPass ? "resp-pass" : "resp-fail");
+    respBtn.innerHTML = `${resp.status_code || "RESP"} &bull; View`;
+    respBtn.title = "Click to inspect exact HTTP response";
+    respBtn.onmousedown = (e) => e.stopPropagation();
+    respBtn.onclick = (e) => {
+      e.stopPropagation();
+      openResponseModal(node.tool || node.bind_as || node.id, resp);
+    };
+    subRow.appendChild(respBtn);
+  }
+
+  const spacer = document.createElement("span");
+  spacer.className = "spacer";
+
+  const del = document.createElement("button");
+  del.className = "danger"; del.textContent = "delete";
+  del.onclick = () => removeNode(node, parentArray);
+
+  subRow.append(spacer, del);
+
+  head.append(topRow, subRow);
+  card.appendChild(head);
+
+  if (tool) {
+    const paramFields = tool.fields.filter(f => f.in !== "body");
+    const jsonFields = tool.fields.filter(f => f.in === "body");
+
+    function renderCollapsibleGroup(title, fields, stateKey, badgeText) {
+      if (!fields || fields.length === 0) return;
+      if (node[stateKey] === undefined) node[stateKey] = false;
+
+      const sec = document.createElement("div");
+      sec.className = "collapsible-section";
+
+      const secHead = document.createElement("div");
+      secHead.className = "collapsible-head";
+
+      const titleSpan = document.createElement("span");
+      titleSpan.className = "collapsible-title";
+
+      const countBadge = document.createElement("span");
+      countBadge.className = "collapsible-count";
+      function updateBadge() {
+        const filled = fields.filter(f => node.args[f.name] !== undefined && node.args[f.name] !== "").length;
+        countBadge.textContent = `${filled}/${fields.length}`;
+      }
+      updateBadge();
+
+      const labelSpan = document.createElement("span");
+      labelSpan.textContent = title;
+      titleSpan.append(labelSpan, countBadge);
+
+      if (badgeText) {
+        const badge = document.createElement("span");
+        badge.className = "ct-badge";
+        badge.textContent = badgeText;
+        titleSpan.appendChild(badge);
+      }
+
+      const arrow = document.createElement("span");
+      arrow.className = "collapsible-arrow";
+      arrow.innerHTML = node[stateKey] ? "&#9654;" : "&#9660;";
+
+      secHead.append(titleSpan, arrow);
+
+      const secBody = document.createElement("div");
+      secBody.className = "collapsible-body" + (node[stateKey] ? " hidden" : "");
+      for (const field of fields) {
+        secBody.appendChild(renderArgField(node, field, updateBadge));
+      }
+
+      secHead.onmousedown = (e) => e.stopPropagation();
+      secHead.onclick = (e) => {
+        e.stopPropagation();
+        node[stateKey] = !node[stateKey];
+        secBody.classList.toggle("hidden", node[stateKey]);
+        arrow.innerHTML = node[stateKey] ? "&#9654;" : "&#9660;";
+        autosizeCanvas();
+        drawEdges();
+        triggerAutoSave();
+      };
+
+      sec.append(secHead, secBody);
+      card.appendChild(sec);
+    }
+
+    const isMultipart = tool.body_content_type === "multipart/form-data";
+    const isUrlEncoded = tool.body_content_type === "application/x-www-form-urlencoded";
+    const bodyTitle = isMultipart ? "Form / Files" : (isUrlEncoded ? "Form (URL)" : "Body JSON");
+    const ctBadge = isMultipart ? "multipart" : (isUrlEncoded ? "urlencoded" : null);
+
+    renderCollapsibleGroup("Params", paramFields, "collapse_params");
+    renderCollapsibleGroup(bodyTitle, jsonFields, "collapse_json", ctBadge);
+  } else {
+    const warn = document.createElement("div");
+    warn.className = "log-fail";
+    warn.textContent = `unknown tool: ${node.tool}`;
+    card.appendChild(warn);
+  }
+
+  const block = document.createElement("div");
+  block.className = "validate-block";
+
+  const vHead = document.createElement("div");
+  vHead.className = "validate-head";
+
+  const label = document.createElement("div");
+  label.className = "subhead";
+  label.textContent = `validate (${node.validate.length})`;
+
+  if (node.validate.length > 0) {
+    let hasFail = false;
+    let hasPass = false;
+    function checkStatus(items) {
+      for (const item of items) {
+        if (stepStatus[item.id] === "fail") hasFail = true;
+        if (stepStatus[item.id] === "pass") hasPass = true;
+        if (item.validate) checkStatus(item.validate);
+      }
+    }
+    checkStatus(node.validate);
+    if (hasFail) {
+      const badge = document.createElement("span");
+      badge.className = "validate-status-badge fail";
+      badge.textContent = "fail";
+      label.appendChild(badge);
+    } else if (hasPass) {
+      const badge = document.createElement("span");
+      badge.className = "validate-status-badge pass";
+      badge.textContent = "pass";
+      label.appendChild(badge);
+    }
+  }
+  vHead.appendChild(label);
+
+  if (node.validate.length > 0) {
+    const hideLabel = document.createElement("label");
+    hideLabel.className = "hide-validators-label";
+    hideLabel.title = "Hide or show validator cards on canvas";
+    const hideCb = document.createElement("input");
+    hideCb.type = "checkbox";
+    hideCb.checked = !!node.hide_validators;
+    hideCb.onmousedown = (e) => e.stopPropagation();
+    hideCb.onchange = () => {
+      node.hide_validators = hideCb.checked;
+      render();
+      triggerAutoSave();
+    };
+    const hideText = document.createElement("span");
+    hideText.textContent = "Hide nodes";
+    hideLabel.append(hideCb, hideText);
+    vHead.appendChild(hideLabel);
+  }
+  block.appendChild(vHead);
+
+  const addRow = document.createElement("div");
+  addRow.className = "add-row";
+
+  const checkTypeSelect = document.createElement("select");
+  checkTypeSelect.innerHTML = `<option value="status">status check</option><option value="json">json check</option>`;
+  const addCheckBtn = document.createElement("button");
+  addCheckBtn.textContent = "+ check";
+  addCheckBtn.onclick = () => {
+    node.hide_validators = false;
+    node.validate.push(newCheckNode(checkTypeSelect.value, nextChildPos(node)));
+    render();
+    triggerAutoSave();
+  };
+
+  const nestedToolSelect = document.createElement("select");
+  buildToolOptions(nestedToolSelect, "compact");
+  const addNestedBtn = document.createElement("button");
+  addNestedBtn.textContent = "+ nested call";
+  addNestedBtn.onclick = () => {
+    node.hide_validators = false;
+    node.validate.push(newCallNode(nestedToolSelect.value, nextChildPos(node)));
+    render();
+    triggerAutoSave();
+  };
+
+  addRow.append(checkTypeSelect, addCheckBtn, nestedToolSelect, addNestedBtn);
+  block.appendChild(addRow);
+  card.appendChild(block);
+
+  return card;
+}
+
+function renderArgField(node, field, onUpdateCount) {
+  const row = document.createElement("div");
+  row.className = "field-row";
+
+  const label = document.createElement("label");
+  label.textContent = field.name + (field.in !== "body" ? ` (${field.in})` : "");
+  label.title = label.textContent;
+  if (field.required) {
+    const star = document.createElement("span");
+    star.className = "req-star"; star.textContent = " *";
+    label.appendChild(star);
+  }
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = field.type === "file"
+    ? "@/path/to/file or filename"
+    : field.type + `  ($data.x / $ctx.step.body.path)`;
+  const current = node.args[field.name];
+  input.value = current === undefined ? "" : valueToInputString(current);
+  input.onmousedown = (e) => e.stopPropagation();
+  input.onchange = () => {
+    const coerced = coerceArgValue(input.value, field.type);
+    if (coerced === undefined) delete node.args[field.name];
+    else node.args[field.name] = coerced;
+    if (onUpdateCount) onUpdateCount();
+    triggerAutoSave();
+  };
+
+  row.append(label, input);
+
+  if (field.type === "file") {
+    const filePicker = document.createElement("input");
+    filePicker.type = "file";
+    filePicker.style.display = "none";
+    filePicker.onchange = () => {
+      if (filePicker.files && filePicker.files[0]) {
+        input.value = filePicker.files[0].name;
+        node.args[field.name] = input.value;
+        if (onUpdateCount) onUpdateCount();
+        triggerAutoSave();
+      }
+    };
+    const pickBtn = document.createElement("button");
+    pickBtn.type = "button";
+    pickBtn.className = "pick-file-btn";
+    pickBtn.innerHTML = "&#128194;";
+    pickBtn.title = "Pick local file (sets filename; or type @/absolute/path)";
+    pickBtn.onmousedown = (e) => e.stopPropagation();
+    pickBtn.onclick = (e) => {
+      e.stopPropagation();
+      filePicker.click();
+    };
+    row.append(filePicker, pickBtn);
+  }
+
+  return row;
+}
+
+function buildCheckCardEl(node, parentArray) {
+  const card = document.createElement("div");
+  card.className = "node-card check-card" + (currentMode === "view" ? " node-card-view" : "");
+
+  const head = document.createElement("div");
+  head.className = "card-head";
+  const kindLabel = document.createElement("span");
+  kindLabel.textContent = node.check_type === "status" ? "status_code ==" : (node.check_type === "persistence" ? "persistence state" : "json path");
+  kindLabel.style.color = "var(--dim)";
+  const runBtn = document.createElement("button");
+  runBtn.className = "run-node-btn";
+  runBtn.innerHTML = "&#9654; Run";
+  runBtn.title = "Evaluate this check";
+  runBtn.onmousedown = (e) => e.stopPropagation();
+  runBtn.onclick = (e) => {
+    e.stopPropagation();
+    runSingleNodeUI(node, card, runBtn);
+  };
+
+  const spacer = document.createElement("span");
+  spacer.className = "spacer";
+
+  if (currentMode === "view") {
+    head.append(kindLabel, spacer, runBtn);
+    card.appendChild(head);
+
+    const checkSummary = document.createElement("div");
+    checkSummary.className = "view-check-summary";
+    if (node.check_type === "status") {
+      checkSummary.innerHTML = `<span class="check-expected">== ${node.status || 200}</span>`;
+    } else {
+      checkSummary.innerHTML = `<code>${escapeHtml(node.path || "")}</code> ${node.not_none ? '<span class="check-not-none">!= null</span>' : ''} ${node.equals !== undefined ? `<span class="check-equals">== ${escapeHtml(valueToInputString(node.equals))}</span>` : ''}`;
+    }
+    card.appendChild(checkSummary);
+    return card;
+  }
+
+  const del = document.createElement("button");
+  del.className = "danger"; del.textContent = "x";
+  del.onclick = () => removeNode(node, parentArray);
+  head.append(kindLabel, runBtn, spacer, del);
+  card.appendChild(head);
+
+  if (node.check_type === "status") {
+    const input = document.createElement("input");
+    input.type = "number"; input.value = node.status;
+    input.onmousedown = (e) => e.stopPropagation();
+    input.onchange = () => {
+      node.status = parseInt(input.value, 10);
+      triggerAutoSave();
+    };
+    card.appendChild(input);
+  } else if (node.check_type === "json" || node.check_type === "json_path") {
+    const pathRow = document.createElement("div");
+    pathRow.className = "field-row";
+    const pathLabel = document.createElement("label"); pathLabel.textContent = "path";
+    const pathInput = document.createElement("input");
+    pathInput.type = "text"; pathInput.value = node.path || ""; pathInput.placeholder = "e.g. access_token";
+    pathInput.onmousedown = (e) => e.stopPropagation();
+    pathInput.onchange = () => {
+      node.path = pathInput.value;
+      triggerAutoSave();
+    };
+    pathRow.append(pathLabel, pathInput);
+    card.appendChild(pathRow);
+
+    const notNoneRow = document.createElement("div");
+    notNoneRow.className = "field-row";
+    const nnLabel = document.createElement("label"); nnLabel.textContent = "not_none";
+    const nnInput = document.createElement("input");
+    nnInput.type = "checkbox"; nnInput.checked = !!node.not_none;
+    nnInput.onmousedown = (e) => e.stopPropagation();
+    nnInput.onchange = () => {
+      node.not_none = nnInput.checked;
+      triggerAutoSave();
+    };
+    notNoneRow.append(nnLabel, nnInput);
+    card.appendChild(notNoneRow);
+
+    const eqRow = document.createElement("div");
+    eqRow.className = "field-row";
+    const eqLabel = document.createElement("label"); eqLabel.textContent = "equals";
+    const eqInput = document.createElement("input");
+    eqInput.type = "text"; eqInput.value = node.equals === undefined ? "" : valueToInputString(node.equals);
+    eqInput.placeholder = "(optional) JSON or text";
+    eqInput.onmousedown = (e) => e.stopPropagation();
+    eqInput.onchange = () => {
+      if (eqInput.value === "") delete node.equals;
+      else node.equals = parseLooseJSON(eqInput.value);
+      triggerAutoSave();
+    };
+    eqRow.append(eqLabel, eqInput);
+    card.appendChild(eqRow);
+  }
+
+  return card;
+}
+
+function buildConditionCardEl(node, parentArray) {
+  const card = document.createElement("div");
+  card.className = "node-card condition-card" + (currentMode === "view" ? " node-card-view" : "");
+
+  const head = document.createElement("div");
+  head.className = "card-head";
+
+  const badge = document.createElement("span");
+  badge.className = "cond-badge";
+  badge.textContent = "IF / CONDITION";
+
+  const runBtn = document.createElement("button");
+  runBtn.className = "run-node-btn";
+  runBtn.innerHTML = "&#9654; Run";
+  runBtn.title = "Evaluate this condition";
+  runBtn.onmousedown = (e) => e.stopPropagation();
+  runBtn.onclick = (e) => {
+    e.stopPropagation();
+    runSingleNodeUI(node, card, runBtn);
+  };
+
+  const spacer = document.createElement("span");
+  spacer.className = "spacer";
+
+  if (currentMode === "view") {
+    head.append(badge, spacer, runBtn);
+    card.appendChild(head);
+
+    const condBox = document.createElement("div");
+    condBox.className = "view-cond-box";
+    condBox.innerHTML = `
+      <span class="cond-left">${escapeHtml(node.left || "")}</span>
+      <span class="cond-op">${escapeHtml(node.op || "==")}</span>
+      <span class="cond-right">${escapeHtml(node.right !== undefined ? valueToInputString(node.right) : "")}</span>
+      ${node.assert ? '<span class="cond-assert-tag">ASSERT</span>' : ''}
+    `;
+    card.appendChild(condBox);
+
+    const branchSummary = document.createElement("div");
+    branchSummary.className = "view-branch-summary";
+    branchSummary.innerHTML = `
+      <div class="view-branch-tag then"><span class="branch-dot pass"></span> THEN: ${(node.then_steps || []).length} steps</div>
+      <div class="view-branch-tag else"><span class="branch-dot warn"></span> ELSE: ${(node.else_steps || []).length} steps</div>
+    `;
+    card.appendChild(branchSummary);
+    return card;
+  }
+
+  const del = document.createElement("button");
+  del.className = "danger";
+  del.textContent = "delete";
+  del.onclick = () => removeNode(node, parentArray);
+
+  head.append(badge, runBtn, spacer, del);
+  card.appendChild(head);
+
+  const leftRow = document.createElement("div");
+  leftRow.className = "field-row";
+  const leftLabel = document.createElement("label");
+  leftLabel.textContent = "if (left)";
+  const leftInput = document.createElement("input");
+  leftInput.type = "text";
+  leftInput.placeholder = "e.g. $ctx.login.body.detail";
+  leftInput.value = node.left || "";
+  leftInput.onmousedown = (e) => e.stopPropagation();
+  leftInput.onchange = () => {
+    node.left = leftInput.value;
+    triggerAutoSave();
+  };
+  leftRow.append(leftLabel, leftInput);
+  card.appendChild(leftRow);
+
+  const opRow = document.createElement("div");
+  opRow.className = "field-row";
+  const opLabel = document.createElement("label");
+  opLabel.textContent = "operator";
+  const opSelect = document.createElement("select");
+  opSelect.innerHTML = `
+    <option value="==">== (equals)</option>
+    <option value="!=">!= (not equals)</option>
+    <option value="contains">contains</option>
+    <option value="not_contains">not contains</option>
+    <option value=">">&gt; (greater than)</option>
+    <option value=">=">&gt;= (greater or equal)</option>
+    <option value="<">&lt; (less than)</option>
+    <option value="<=">&lt;= (less or equal)</option>
+    <option value="is_truthy">is truthy (not empty/null)</option>
+    <option value="is_falsy">is falsy (empty/null)</option>
+  `;
+  opSelect.value = node.op || "==";
+  opSelect.onmousedown = (e) => e.stopPropagation();
+  opSelect.onchange = () => {
+    node.op = opSelect.value;
+    rightRow.style.display = (node.op === "is_truthy" || node.op === "is_falsy") ? "none" : "";
+    triggerAutoSave();
+  };
+  opRow.append(opLabel, opSelect);
+  card.appendChild(opRow);
+
+  const rightRow = document.createElement("div");
+  rightRow.className = "field-row";
+  if (node.op === "is_truthy" || node.op === "is_falsy") rightRow.style.display = "none";
+  const rightLabel = document.createElement("label");
+  rightLabel.textContent = "value (right)";
+  const rightInput = document.createElement("input");
+  rightInput.type = "text";
+  rightInput.placeholder = "e.g. already exists";
+  rightInput.value = node.right !== undefined ? valueToInputString(node.right) : "";
+  rightInput.onmousedown = (e) => e.stopPropagation();
+  rightInput.onchange = () => {
+    node.right = parseLooseJSON(rightInput.value);
+    triggerAutoSave();
+  };
+  rightRow.append(rightLabel, rightInput);
+  card.appendChild(rightRow);
+
+  const assertRow = document.createElement("div");
+  assertRow.className = "field-row";
+  const assertLabel = document.createElement("label");
+  assertLabel.textContent = "assert true";
+  const assertInput = document.createElement("input");
+  assertInput.type = "checkbox"; assertInput.checked = node.assert === true;
+  assertInput.title = "Fail the flow if this condition is false";
+  assertInput.onmousedown = (e) => e.stopPropagation();
+  assertInput.onchange = () => { node.assert = assertInput.checked; triggerAutoSave(); };
+  assertRow.append(assertLabel, assertInput);
+  card.appendChild(assertRow);
+
+  const thenBox = document.createElement("div");
+  thenBox.className = "branch-box then-box";
+  const thenHead = document.createElement("div");
+  thenHead.className = "branch-head then-head";
+  thenHead.innerHTML = `<span>&#10003; THEN (${(node.then_steps || []).length} steps)</span>`;
+  thenBox.appendChild(thenHead);
+
+  const thenAddRow = document.createElement("div");
+  thenAddRow.className = "add-row";
+  const thenSelect = document.createElement("select");
+  buildToolOptions(thenSelect, "compact");
+  const thenAddBtn = document.createElement("button");
+  thenAddBtn.textContent = "+ step";
+  thenAddBtn.onclick = () => {
+    node.then_steps = node.then_steps || [];
+    node.then_steps.push(newCallNode(thenSelect.value, nextBranchPos(node, "then")));
+    render();
+    triggerAutoSave();
+  };
+
+  const thenFlowSelect = document.createElement("select");
+  populateFlowOptions(thenFlowSelect, "", state ? state.name : null);
+  const thenAddFlowBtn = document.createElement("button");
+  thenAddFlowBtn.className = "btn-flow";
+  thenAddFlowBtn.textContent = "+ flow";
+  thenAddFlowBtn.onclick = () => {
+    if (!thenFlowSelect.value) return;
+    node.then_steps = node.then_steps || [];
+    node.then_steps.push(newFlowStepNode(thenFlowSelect.value, nextBranchPos(node, "then")));
+    render();
+    triggerAutoSave();
+  };
+
+  thenAddRow.append(thenSelect, thenAddBtn, thenFlowSelect, thenAddFlowBtn);
+  thenBox.appendChild(thenAddRow);
+  card.appendChild(thenBox);
+
+  const elseBox = document.createElement("div");
+  elseBox.className = "branch-box else-box";
+  const elseHead = document.createElement("div");
+  elseHead.className = "branch-head else-head";
+  elseHead.innerHTML = `<span>&#10007; ELSE (${(node.else_steps || []).length} steps)</span>`;
+  elseBox.appendChild(elseHead);
+
+  const elseAddRow = document.createElement("div");
+  elseAddRow.className = "add-row";
+  const elseSelect = document.createElement("select");
+  buildToolOptions(elseSelect, "compact");
+  const elseAddBtn = document.createElement("button");
+  elseAddBtn.textContent = "+ step";
+  elseAddBtn.onclick = () => {
+    node.else_steps = node.else_steps || [];
+    node.else_steps.push(newCallNode(elseSelect.value, nextBranchPos(node, "else")));
+    render();
+    triggerAutoSave();
+  };
+
+  const elseFlowSelect = document.createElement("select");
+  populateFlowOptions(elseFlowSelect, "", state ? state.name : null);
+  const elseAddFlowBtn = document.createElement("button");
+  elseAddFlowBtn.className = "btn-flow";
+  elseAddFlowBtn.textContent = "+ flow";
+  elseAddFlowBtn.onclick = () => {
+    if (!elseFlowSelect.value) return;
+    node.else_steps = node.else_steps || [];
+    node.else_steps.push(newFlowStepNode(elseFlowSelect.value, nextBranchPos(node, "else")));
+    render();
+    triggerAutoSave();
+  };
+
+  elseAddRow.append(elseSelect, elseAddBtn, elseFlowSelect, elseAddFlowBtn);
+  elseBox.appendChild(elseAddRow);
+  card.appendChild(elseBox);
+
+  return card;
+}
+
+function buildFlowCardEl(node, parentArray) {
+  const card = document.createElement("div");
+  card.className = "node-card flow-card" + (currentMode === "view" ? " node-card-view" : "");
+
+  const head = document.createElement("div");
+  head.className = "card-head";
+
+  const topRow = document.createElement("div");
+  topRow.className = "card-head-row card-head-top";
+
+  const badge = document.createElement("span");
+  badge.className = "flow-badge";
+  badge.textContent = "☷ FLOW BLOCK";
+
+  const runBtn = document.createElement("button");
+  runBtn.className = "run-node-btn";
+  runBtn.innerHTML = "&#9654; Run";
+  runBtn.title = "Run this subflow block";
+  runBtn.onmousedown = (e) => e.stopPropagation();
+  runBtn.onclick = (e) => {
+    e.stopPropagation();
+    runSingleNodeUI(node, card, runBtn);
+  };
+
+  if (currentMode === "view") {
+    const spacer = document.createElement("span");
+    spacer.className = "spacer";
+    topRow.append(badge, spacer, runBtn);
+    head.appendChild(topRow);
+    card.appendChild(head);
+
+    const flowBox = document.createElement("div");
+    flowBox.className = "view-flow-box";
+    flowBox.innerHTML = `
+      <span class="flow-name-chip">${escapeHtml(node.flow_name || "(none)")}</span>
+      ${node.bind_as ? `<span class="view-bind-pill">↳ $ctx.${escapeHtml(node.bind_as)}</span>` : ''}
+    `;
+    card.appendChild(flowBox);
+    return card;
+  }
+
+  const flowSelect = document.createElement("select");
+  flowSelect.className = "flow-select";
+  populateFlowOptions(flowSelect, node.flow_name, state ? state.name : null);
+  if (!node.flow_name && flowSelect.value) {
+    node.flow_name = flowSelect.value;
+  }
+  flowSelect.onchange = () => {
+    node.flow_name = flowSelect.value;
+    render();
+    triggerAutoSave();
+  };
+
+  topRow.append(badge, flowSelect, runBtn);
+
+  const subRow = document.createElement("div");
+  subRow.className = "card-head-row card-head-sub";
+
+  const bindInput = document.createElement("input");
+  bindInput.type = "text";
+  bindInput.placeholder = "bind_as";
+  bindInput.value = node.bind_as || "";
+  bindInput.title = "Optional: namespace subflow context under $ctx.<name>";
+  bindInput.onchange = () => {
+    node.bind_as = bindInput.value.trim();
+    triggerAutoSave();
+  };
+
+  const descSpan = document.createElement("span");
+  descSpan.className = "log-dim";
+  descSpan.style.fontSize = "10px";
+  descSpan.textContent = "merges into $ctx";
+
+  const spacer = document.createElement("span");
+  spacer.className = "spacer";
+
+  const del = document.createElement("button");
+  del.className = "danger";
+  del.textContent = "delete";
+  del.onclick = () => removeNode(node, parentArray);
+
+  subRow.append(bindInput, descSpan, spacer, del);
+  head.append(topRow, subRow);
+  card.appendChild(head);
+
+  return card;
+}
+
+function buildSplitCardEl(node, parentArray) {
+  const card = document.createElement("div");
+  card.className = "node-card split-card" + (currentMode === "view" ? " node-card-view" : "");
+
+  const head = document.createElement("div");
+  head.className = "card-head";
+
+  const topRow = document.createElement("div");
+  topRow.className = "card-head-row card-head-top";
+
+  const badge = document.createElement("span");
+  badge.className = "split-badge";
+  badge.textContent = "⑂ SPLIT";
+
+  if (currentMode === "view") {
+    const modeBadge = document.createElement("span");
+    modeBadge.className = "split-badge";
+    modeBadge.style.color = "var(--text)";
+    modeBadge.style.borderColor = "var(--line)";
+    modeBadge.textContent = (node.mode || "parallel").toUpperCase();
+
+    const runBtn = document.createElement("button");
+    runBtn.className = "run-node-btn";
+    runBtn.innerHTML = "&#9654; Run";
+    runBtn.title = "Run this split block";
+    runBtn.onmousedown = (e) => e.stopPropagation();
+    runBtn.onclick = (e) => {
+      e.stopPropagation();
+      runSingleNodeUI(node, card, runBtn);
+    };
+
+    const spacer = document.createElement("span");
+    spacer.className = "spacer";
+
+    topRow.append(badge, modeBadge, spacer, runBtn);
+    head.appendChild(topRow);
+    card.appendChild(head);
+
+    const splitBox = document.createElement("div");
+    splitBox.className = "view-split-box";
+    const branches = node.branches || [];
+    splitBox.innerHTML = `
+      <div class="view-split-branches">
+        ${branches.map((b, i) => `<span class="split-path-pill">Path ${i+1}: ${escapeHtml(b.name || `Branch ${i+1}`)} (${(b.steps||[]).length} steps)</span>`).join('')}
+      </div>
+    `;
+    card.appendChild(splitBox);
+    return card;
+  }
+
+  const modeSelect = document.createElement("select");
+  modeSelect.className = "split-mode-select";
+  modeSelect.innerHTML = `
+    <option value="parallel">⚡ Parallel (concurrent)</option>
+    <option value="sequential">➔ Sequential (in-order)</option>
+  `;
+  modeSelect.value = node.mode || "parallel";
+  modeSelect.title = "Choose whether branches run concurrently in parallel threads or sequentially in order";
+  modeSelect.onmousedown = (e) => e.stopPropagation();
+  modeSelect.onchange = () => {
+    node.mode = modeSelect.value;
+    triggerAutoSave();
+  };
+
+  const runBtn = document.createElement("button");
+  runBtn.className = "run-node-btn";
+  runBtn.innerHTML = "&#9654; Run";
+  runBtn.title = "Run this split block";
+  runBtn.onmousedown = (e) => e.stopPropagation();
+  runBtn.onclick = (e) => {
+    e.stopPropagation();
+    runSingleNodeUI(node, card, runBtn);
+  };
+
+  topRow.append(badge, modeSelect, runBtn);
+
+  const subRow = document.createElement("div");
+  subRow.className = "card-head-row card-head-sub";
+
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.placeholder = "Split label (optional)";
+  nameInput.value = node.name || "";
+  nameInput.style.flex = "1";
+  nameInput.onmousedown = (e) => e.stopPropagation();
+  nameInput.onchange = () => {
+    node.name = nameInput.value;
+    triggerAutoSave();
+  };
+
+  const del = document.createElement("button");
+  del.className = "danger";
+  del.textContent = "delete";
+  del.onmousedown = (e) => e.stopPropagation();
+  del.onclick = () => removeNode(node, parentArray);
+
+  subRow.append(nameInput, del);
+  head.append(topRow, subRow);
+  card.appendChild(head);
+
+  const branches = node.branches || [];
+  for (let bi = 0; bi < branches.length; bi++) {
+    const branch = branches[bi];
+    const bBox = document.createElement("div");
+    bBox.className = "branch-box split-branch-box";
+
+    const bHead = document.createElement("div");
+    bHead.className = "branch-head split-branch-head";
+
+    const titleInput = document.createElement("input");
+    titleInput.type = "text";
+    titleInput.value = branch.name || `Branch ${bi + 1}`;
+    titleInput.style.fontSize = "11px";
+    titleInput.style.padding = "1px 5px";
+    titleInput.style.width = "130px";
+    titleInput.onmousedown = (e) => e.stopPropagation();
+    titleInput.onchange = () => {
+      branch.name = titleInput.value;
+      triggerAutoSave();
+    };
+
+    const countSpan = document.createElement("span");
+    countSpan.className = "log-dim";
+    countSpan.style.fontSize = "10px";
+    countSpan.textContent = `(${(branch.steps || []).length} steps)`;
+
+    bHead.append(titleInput, countSpan);
+
+    if (branches.length > 1) {
+      const delBranchBtn = document.createElement("button");
+      delBranchBtn.textContent = "✕";
+      delBranchBtn.className = "danger";
+      delBranchBtn.style.padding = "0 4px";
+      delBranchBtn.style.fontSize = "10px";
+      delBranchBtn.title = "Delete this branch";
+      delBranchBtn.onmousedown = (e) => e.stopPropagation();
+      delBranchBtn.onclick = () => {
+        branches.splice(bi, 1);
+        render();
+        triggerAutoSave();
+      };
+      bHead.appendChild(delBranchBtn);
+    }
+    bBox.appendChild(bHead);
+
+    const bAddRow = document.createElement("div");
+    bAddRow.className = "add-row";
+    bAddRow.style.marginTop = "4px";
+
+    const bStepSelect = document.createElement("select");
+    buildToolOptions(bStepSelect, "compact");
+    const bAddStepBtn = document.createElement("button");
+    bAddStepBtn.textContent = "+ step";
+    bAddStepBtn.onclick = () => {
+      branch.steps = branch.steps || [];
+      const branchPos = {
+        x: (node.pos?.x || 80) + 370 + (branch.steps.length * 350),
+        y: (node.pos?.y || 80) + (bi * 150) - 20,
+      };
+      branch.steps.push(newCallNode(bStepSelect.value, branchPos));
+      render();
+      triggerAutoSave();
+    };
+
+    const bFlowSelect = document.createElement("select");
+    populateFlowOptions(bFlowSelect, "", state ? state.name : null);
+    const bAddFlowBtn = document.createElement("button");
+    bAddFlowBtn.className = "btn-flow";
+    bAddFlowBtn.textContent = "+ flow";
+    bAddFlowBtn.onclick = () => {
+      if (!bFlowSelect.value) return;
+      branch.steps = branch.steps || [];
+      const branchPos = {
+        x: (node.pos?.x || 80) + 370 + (branch.steps.length * 350),
+        y: (node.pos?.y || 80) + (bi * 150) - 20,
+      };
+      branch.steps.push(newFlowStepNode(bFlowSelect.value, branchPos));
+      render();
+      triggerAutoSave();
+    };
+
+    bAddRow.append(bStepSelect, bAddStepBtn, bFlowSelect, bAddFlowBtn);
+    bBox.appendChild(bAddRow);
+    card.appendChild(bBox);
+  }
+
+  const addBranchBtn = document.createElement("button");
+  addBranchBtn.style.marginTop = "6px";
+  addBranchBtn.style.width = "100%";
+  addBranchBtn.className = "btn-split";
+  addBranchBtn.style.fontSize = "11px";
+  addBranchBtn.textContent = "+ Add Branch";
+  addBranchBtn.onclick = () => {
+    node.branches = node.branches || [];
+    node.branches.push({ id: newId(), name: `Branch ${node.branches.length + 1}`, steps: [] });
+    render();
+    triggerAutoSave();
+  };
+  card.appendChild(addBranchBtn);
+
+  return card;
+}
+
+// ---------------------------------------------------------------------
+// Modals: import spec / add manual tool
+// ---------------------------------------------------------------------
+
+function openModal(id) {
+  document.getElementById("modal-overlay").hidden = false;
+  document.getElementById(id).hidden = false;
+}
+function closeModals() {
+  document.getElementById("modal-overlay").hidden = true;
+  for (const m of document.querySelectorAll(".modal")) m.hidden = true;
+}
+
+function slugify(text) {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "spec";
+}
+
+async function importSpec() {
+  const content = document.getElementById("spec-content-input").value.trim();
+  if (!content) { addLog("paste or upload spec content first", "log-fail"); return; }
+  const wsId = activeWorkspace ? activeWorkspace.id : "default";
+  try {
+    await api(`/api/workspaces/${encodeURIComponent(wsId)}/spec`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    });
+    addLog(`Imported OpenAPI spec into workspace '${wsId}'`, "log-pass");
+  } catch (err) {
+    addLog(`Import failed: ${err.message || err}`, "log-fail");
+    return;
+  }
+  closeModals();
+  document.getElementById("spec-title-input").value = "";
+  document.getElementById("spec-content-input").value = "";
+  await Promise.all([refreshWorkspaces(), loadTools()]);
+  render();
+}
+
+async function addManualTool() {
+  const ctEl = document.getElementById("manual-content-type");
+  const wsId = activeWorkspace ? activeWorkspace.id : "default";
+  const body = {
+    operation_id: document.getElementById("manual-op-id").value.trim(),
+    tag: document.getElementById("manual-tag").value.trim() || "manual",
+    method: document.getElementById("manual-method").value,
+    path: document.getElementById("manual-path").value.trim(),
+    query_params: document.getElementById("manual-query").value.split(",").map(s => s.trim()).filter(Boolean),
+    body_fields: document.getElementById("manual-body").value.split(",").map(s => s.trim()).filter(Boolean),
+    requires_auth: document.getElementById("manual-auth").checked,
+    content_type: ctEl ? ctEl.value : "application/json",
+  };
+  if (!body.operation_id || !body.path) { addLog("operation id and path are required", "log-fail"); return; }
+  try {
+    await api(`/api/workspaces/${encodeURIComponent(wsId)}/tools/manual`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+    addLog(`Added API '${body.operation_id}' to workspace`, "log-pass");
+  } catch (err) {
+    addLog(`Failed to add API: ${err.message || err}`, "log-fail");
+    return;
+  }
+  closeModals();
+  for (const id of ["manual-op-id", "manual-tag", "manual-path", "manual-query", "manual-body"]) document.getElementById(id).value = "";
+  if (ctEl) ctEl.value = "application/json";
+  document.getElementById("manual-auth").checked = false;
+  await loadTools();
+  render();
+}
+
+// ---------------------------------------------------------------------
+// Assistant chat
+// ---------------------------------------------------------------------
+
+let assistantWs = null;
+
+function switchTab(which) {
+  document.getElementById("tab-log-btn").classList.toggle("active", which === "log");
+  document.getElementById("tab-assistant-btn").classList.toggle("active", which === "assistant");
+  document.getElementById("tab-log").hidden = which !== "log";
+  document.getElementById("tab-assistant").hidden = which !== "assistant";
+}
+
+function addChatMsg(text, cls, resultObj) {
+  const div = document.createElement("div");
+  div.className = "chat-msg " + cls;
+  const textSpan = document.createElement("span");
+  textSpan.textContent = text;
+  div.appendChild(textSpan);
+
+  if (resultObj && resultObj.response) {
+    const viewBtn = document.createElement("button");
+    const code = resultObj.response.status_code || 200;
+    viewBtn.className = "log-resp-badge " + (code >= 200 && code < 300 ? "resp-badge-pass" : "resp-badge-fail");
+    viewBtn.style.marginLeft = "8px";
+    viewBtn.textContent = `${code} View Response`;
+    viewBtn.onclick = () => openResponseModal(resultObj.name || resultObj.id, resultObj.response);
+    div.appendChild(viewBtn);
+  }
+
+  const log = document.getElementById("chat-log");
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function connectAssistant() {
+  if (assistantWs && assistantWs.readyState === WebSocket.OPEN && assistantWs.__flowName === state.name) return assistantWs;
+  if (assistantWs) { try { assistantWs.close(); } catch (e) { /* ignore */ } }
+  const proto = location.protocol === "https:" ? "wss:" : "ws:";
+  assistantWs = new WebSocket(`${proto}//${location.host}/ws/assistant/${encodeURIComponent(state.name)}`);
+  assistantWs.__flowName = state.name;
+  assistantWs.onmessage = (evt) => {
+    const msg = JSON.parse(evt.data);
+    if (msg.type === "tool_call") {
+      addChatMsg(`→ ${msg.name}(${JSON.stringify(msg.args)})`, "event");
+    } else if (msg.type === "tool_result") {
+      if (msg.result && typeof msg.result === "object") {
+        if (msg.result.id) {
+          stepStatus[msg.result.id] = msg.result.status;
+          if (msg.result.response) {
+            stepResponses[msg.result.id] = msg.result.response;
+          }
+          applyStepStatuses();
+        }
+      }
+      const brief = typeof msg.result === "object" ? JSON.stringify(msg.result).slice(0, 200) : String(msg.result);
+      addChatMsg(`← ${brief}`, "event", msg.result?.response ? msg.result : null);
+    } else if (msg.type === "graph") {
+      state = msg.graph;
+      stepStatus = {};
+      render();
+    } else if (msg.type === "reply") {
+      addChatMsg(msg.message, "assistant");
+    } else if (msg.type === "error") {
+      addChatMsg("error: " + msg.message, "event");
+    }
+  };
+  assistantWs.onerror = () => addChatMsg("assistant connection error", "event");
+  return assistantWs;
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById("chat-input");
+  const text = input.value.trim();
+  if (!text) return;
+  await saveFlow();
+  input.value = "";
+  addChatMsg(text, "user");
+  const socket = connectAssistant();
+  const send = () => socket.send(JSON.stringify({ message: text }));
+  if (socket.readyState === WebSocket.OPEN) send();
+  else socket.addEventListener("open", send, { once: true });
+}
+
+// ---------------------------------------------------------------------
+// Wiring
+// ---------------------------------------------------------------------
+
+document.getElementById("flow-name").onchange = (e) => {
+  const newName = e.target.value.trim();
+  if (newName && newName !== state.name) {
+    try { localStorage.removeItem("tibb_draft_" + state.name); } catch (err) {}
+    state.name = newName;
+    triggerAutoSave();
+  }
+};
+document.getElementById("new-flow-btn").onclick = newFlow;
+document.getElementById("save-btn").onclick = () => saveFlow().catch(e => addLog(String(e), "log-fail"));
+document.getElementById("clean-btn").onclick = () => cleanUpFlow();
+const cleanLayoutSelect = document.getElementById("clean-layout-mode");
+if (cleanLayoutSelect) {
+  cleanLayoutSelect.onchange = () => cleanUpFlow(cleanLayoutSelect.value);
+}
+document.getElementById("run-btn").onclick = () => runFlow().catch(e => addLog(String(e), "log-fail"));
+document.getElementById("run-workspace-btn").onclick = () => {
+  if (activeWorkspace) runWorkspace(activeWorkspace.id);
+};
+document.getElementById("edit-run-btn").onclick = () => openEditRunFlowModal();
+document.getElementById("edit-run-flow-add-param").onclick = () => {
+  editRunFlowParams.push({ key: "", value: "" });
+  renderEditRunFlowParams();
+};
+document.getElementById("edit-run-flow-submit-btn").onclick = submitEditRunFlow;
+document.getElementById("edit-run-node-submit-btn").onclick = submitEditRunNode;
+document.getElementById("delete-btn").onclick = () => deleteFlow().catch(e => addLog(String(e), "log-fail"));
+document.getElementById("add-data-row").onclick = () => {
+  state.data["key" + Object.keys(state.data).length] = "";
+  render();
+  triggerAutoSave();
+};
+document.getElementById("add-step-btn").onclick = () => {
+  const sel = document.getElementById("add-step-tool");
+  if (!sel.value) return;
+  const maxY = state.steps.reduce((m, s) => Math.max(m, s.pos ? s.pos.y : 0), 0);
+  state.steps.push(newCallNode(sel.value, { x: 80, y: state.steps.length ? maxY + 260 : 80 }));
+  render();
+  triggerAutoSave();
+};
+document.getElementById("add-condition-btn").onclick = () => {
+  const maxY = state.steps.reduce((m, s) => Math.max(m, s.pos ? s.pos.y : 0), 0);
+  state.steps.push(newConditionNode({ x: 80, y: state.steps.length ? maxY + 260 : 80 }));
+  render();
+  triggerAutoSave();
+};
+document.getElementById("add-split-btn").onclick = () => {
+  const maxY = state.steps.reduce((m, s) => Math.max(m, s.pos ? s.pos.y : 0), 0);
+  state.steps.push(newSplitNode({ x: 80, y: state.steps.length ? maxY + 260 : 80 }));
+  render();
+  triggerAutoSave();
+};
+document.getElementById("add-flow-btn").onclick = () => {
+  const sel = document.getElementById("add-flow-select");
+  if (!sel.value) return;
+  const maxY = state.steps.reduce((m, s) => Math.max(m, s.pos ? s.pos.y : 0), 0);
+  state.steps.push(newFlowStepNode(sel.value, { x: 80, y: state.steps.length ? maxY + 260 : 80 }));
+  render();
+  triggerAutoSave();
+};
+
+document.getElementById("import-spec-btn").onclick = () => openModal("import-spec-modal");
+document.getElementById("spec-cancel-btn").onclick = closeModals;
+document.getElementById("spec-import-btn").onclick = () => importSpec().catch(e => addLog(String(e), "log-fail"));
+document.getElementById("spec-file-input").onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => { document.getElementById("spec-content-input").value = reader.result; };
+  reader.readAsText(file);
+};
+
+document.getElementById("add-manual-tool-btn").onclick = () => openModal("manual-tool-modal");
+document.getElementById("manual-cancel-btn").onclick = closeModals;
+document.getElementById("manual-add-btn").onclick = () => addManualTool().catch(e => addLog(String(e), "log-fail"));
+
+document.getElementById("mode-btn-edit").onclick = () => setMode("edit");
+document.getElementById("mode-btn-view").onclick = () => setMode("view");
+const flowTitleViewEl = document.getElementById("flow-title-view");
+if (flowTitleViewEl) flowTitleViewEl.onclick = () => setMode("edit");
+
+document.getElementById("active-workspace-select").onchange = (e) => switchWorkspace(e.target.value);
+document.getElementById("ws-config-btn").onclick = openWorkspaceSettingsModal;
+document.getElementById("ws-new-btn").onclick = openNewWorkspaceModal;
+document.getElementById("ws-save-settings-btn").onclick = () => saveWorkspaceSettings().catch(e => addLog(String(e), "log-fail"));
+document.getElementById("ws-delete-workspace-btn").onclick = () => deleteActiveWorkspace().catch(e => addLog(String(e), "log-fail"));
+document.getElementById("ws-add-data-kv-btn").onclick = () => addWsKvRow("ws-data-rows", false);
+document.getElementById("ws-add-secret-kv-btn").onclick = () => addWsKvRow("ws-secrets-rows", true);
+document.getElementById("new-ws-submit-btn").onclick = () => submitNewWorkspace().catch(e => addLog(String(e), "log-fail"));
+document.getElementById("ws-pick-spec-btn").onclick = () => document.getElementById("ws-spec-file-input").click();
+document.getElementById("ws-spec-file-input").onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file || !activeWorkspace) return;
+  try {
+    const text = await file.text();
+    await api(`/api/workspaces/${encodeURIComponent(activeWorkspace.id)}/spec`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: text }),
+    });
+    setStatus(`Uploaded spec for workspace '${activeWorkspace.id}'`);
+    document.getElementById("ws-spec-status-text").textContent = `✓ uploaded ${file.name}`;
+    await loadTools();
+  } catch (err) {
+    addLog("Failed to upload spec: " + err, "log-fail");
+  }
+};
+
+document.getElementById("modal-overlay").onclick = (e) => { if (e.target.id === "modal-overlay") closeModals(); };
+
+document.getElementById("tab-log-btn").onclick = () => switchTab("log");
+document.getElementById("tab-assistant-btn").onclick = () => switchTab("assistant");
+document.getElementById("chat-send-btn").onclick = () => sendChatMessage().catch(e => addChatMsg(String(e), "event"));
+document.getElementById("chat-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") sendChatMessage().catch(err => addChatMsg(String(err), "event"));
+});
+
+setupPanning();
+setupCollapsibles();
+
+(async function init() {
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("tibb_draft_")) {
+        localStorage.removeItem(k);
+      }
+    }
+  } catch (e) {}
+
+  const apiSearchInput = document.getElementById("api-search-input");
+  if (apiSearchInput) {
+    apiSearchInput.addEventListener("input", () => refreshApiList());
+  }
+
+  setMode(currentMode);
+  await refreshWorkspaces();
+  await loadTools();
+  await refreshFlowList();
+
+  const lastFlow = localStorage.getItem("tibb_active_flow");
+  if (lastFlow && currentFlowList.includes(lastFlow)) {
+    await loadFlow(lastFlow);
+  } else if (currentFlowList.length > 0) {
+    await loadFlow(currentFlowList[0]);
+  } else {
+    newFlow(false);
+  }
+})().catch(e => addLog(String(e), "log-fail"));
+</script>
+</body>
+</html>

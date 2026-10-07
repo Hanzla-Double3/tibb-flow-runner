@@ -1,0 +1,22 @@
+[project]
+name = "tibb-tester"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.31",
+    "pyyaml>=6.0",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "websockets>=12.0",
+]
+
+[project.optional-dependencies]
+stub = ["flask>=3.0"]
+
+[tool.setuptools.packages.find]
+include = ["core*", "config*", "flows*", "runner*", "stub_api*", "ui_server*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
